@@ -66,9 +66,21 @@ void printString(char output[]);
  * Values for below macros shall be modified per the access-point's (AP) properties
  * SimpleLink device will connect to following AP when the application is executed
  */
-#define SSID_NAME       "DuhFastStuff2.4"       /* Access point name to connect to. */
+/*
+ * Matt's Information
+ */
+
+//#define SSID_NAME       "DuhFastStuff2.4"       // Access point name to connect to.
+//#define PASSKEY         "bday0628"              //Password in case of secure AP
+
+/*
+ * Amar's Information
+ */
+
+#define SSID_NAME       "VeeCastFox178"       // Access point name to connect to.
+#define PASSKEY         "VeeLearCar256!%"              //Password in case of secure AP
+
 #define SEC_TYPE        SL_SEC_TYPE_WPA_WPA2     /* Security type of the Access piont */
-#define PASSKEY         "bday0628"   /* Password in case of secure AP */
 #define PASSKEY_LEN     pal_Strlen(PASSKEY)      /* Password length in case of secure AP */
 
 /*
