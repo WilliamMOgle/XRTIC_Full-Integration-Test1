@@ -95,7 +95,7 @@ void printString(char output[]);
 #define PUBLISH_TOPIC "/msp/cc3100/fromLP"
 
 // MQTT message buffer size
-#define BUFF_SIZE 32
+#define BUFF_SIZE 64
 
 
 #define APPLICATION_VERSION "1.0.0"
@@ -543,13 +543,13 @@ int main(int argc, char** argv)
 
 
 
-    setWheelDutyCycle(&right_wheel_data, 0.1);
+/*    setWheelDutyCycle(&right_wheel_data, 0.1);
     wheelUpdateMove(&right_wheel_data);
 
     setWheelDutyCycle(&left_wheel_data, 0.1);
     wheelUpdateMove(&left_wheel_data);
 
-
+*/
     initMCU();
     initUART();
 
@@ -724,6 +724,7 @@ int main(int argc, char** argv)
 
     while(1)
     {
+        transmitString("START NFC \n\r");
         eTempNFCState = NFC_run();
 
         if(eTempNFCState == NFC_DATA_EXCHANGE_PROTOCOL)
@@ -838,8 +839,10 @@ int main(int argc, char** argv)
             Serial_processCommand();
         }
 
+        transmitString("END NFC \n\r");
 
 
+        transmitString("Start MQTT \n\r");
 
         rc = MQTTYield(&hMQTTClient, 10);
         if (rc != 0) {
@@ -867,8 +870,9 @@ int main(int argc, char** argv)
             publishID = 0;
         }
 
+        transmitString("END MQTT \n\r");
 
-
+        transmitString("Start BUMP \n\r");
 
         //BUMP SENSOR CHECKS
         if(bumpSensorPressed(BUMP0))
@@ -884,6 +888,7 @@ int main(int argc, char** argv)
         if(bumpSensorPressed(BUMP5))
             transmitString("Bump 5 Pressed!\n\r");
 
+        transmitString("END BUMP \n\r");
 
     }
 
@@ -2506,17 +2511,17 @@ static void messageArrived(MessageData* data) {
 
 
 
-    struct controllerData_t tempData = parseControllerJSON(buf, 10);
+    struct controllerData_t tempData = parseControllerJSON(buf, 5);
     transmitString("Pressed: ");
     transmitInt(tempData.pressed);
-    transmitString("Key: ");
-    transmitString(tempData.key);
+    transmitString(" | Key: ");
+    transmitString((unsigned char*)tempData.key);
     transmitString("\n\r");
 
 
 
-    //transmitString((unsigned char*)buf);
-    //transmitString("\n\r");
+    transmitString((unsigned char*)buf);
+    transmitString("\n\r");
 
     return;
 }

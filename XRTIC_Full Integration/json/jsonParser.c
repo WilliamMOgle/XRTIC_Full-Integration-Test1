@@ -78,6 +78,8 @@ struct controllerData_t parseControllerJSON(char *jsonString, int maxTokens)
     keyString2[length] = '\0';
     cD.key = keyString2;
 
+    free(tokens);
+
     return cD;
 }
 
