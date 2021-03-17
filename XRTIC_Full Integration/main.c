@@ -28,7 +28,7 @@ void printString(char output[]);
 
 
 #include "bump_sensor.h"
-
+#include "jsonParser.h"
 
 //ROVER INCLUDES AND MQTT INCLUDES
 // Standard includes
@@ -79,7 +79,7 @@ void printString(char output[]);
 #define MQTT_BROKER_USERNAME "a77buelx"
 #define MQTT_BROKER_PASSWORD "4pixgqnd"
 
-#define SUBSCRIBE_TOPIC "ArmMovement/Command"
+#define SUBSCRIBE_TOPIC "XRTIC20/Commands/Rover"
 #define PUBLISH_TOPIC "/msp/cc3100/fromLP"
 
 // MQTT message buffer size
@@ -2492,8 +2492,19 @@ static void messageArrived(MessageData* data) {
         min(BUFF_SIZE, data->message->payloadlen));
     buf[data->message->payloadlen] = 0;
 
-    transmitString((unsigned char*)buf);
+
+
+    struct controllerData_t tempData = parseControllerJSON(buf, 10);
+    transmitString("Pressed: ");
+    transmitInt(tempData.pressed);
+    transmitString("Key: ");
+    transmitString(tempData.key);
     transmitString("\n\r");
+
+
+
+    //transmitString((unsigned char*)buf);
+    //transmitString("\n\r");
 
     return;
 }
