@@ -842,7 +842,7 @@ int main(int argc, char** argv)
         transmitString("END NFC \n\r");
 
 
-        transmitString("Start MQTT \n\r");
+        transmitString("START MQTT \n\r");
 
         rc = MQTTYield(&hMQTTClient, 10);
         if (rc != 0) {
@@ -872,7 +872,7 @@ int main(int argc, char** argv)
 
         transmitString("END MQTT \n\r");
 
-        transmitString("Start BUMP \n\r");
+        transmitString("START BUMP \n\r");
 
         //BUMP SENSOR CHECKS
         if(bumpSensorPressed(BUMP0))
