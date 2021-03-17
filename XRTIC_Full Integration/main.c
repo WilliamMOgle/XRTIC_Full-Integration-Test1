@@ -27,7 +27,7 @@ void printString(char output[]);
 #include <tag_header.h>
 
 
-
+#include "bump_sensor.h"
 
 
 //ROVER INCLUDES AND MQTT INCLUDES
@@ -855,6 +855,22 @@ int main(int argc, char** argv)
             publishID = 0;
         }
 
+
+
+
+        //BUMP SENSOR CHECKS
+        if(bumpSensorPressed(BUMP0))
+            transmitString("Bump 0 Pressed!\n\r");
+        if(bumpSensorPressed(BUMP1))
+            transmitString("Bump 1 Pressed!\n\r");
+        if(bumpSensorPressed(BUMP2))
+            transmitString("Bump 2 Pressed!\n\r");
+        if(bumpSensorPressed(BUMP3))
+            transmitString("Bump 3 Pressed!\n\r");
+        if(bumpSensorPressed(BUMP4))
+            transmitString("Bump 4 Pressed!\n\r");
+        if(bumpSensorPressed(BUMP5))
+            transmitString("Bump 5 Pressed!\n\r");
 
 
     }
