@@ -261,6 +261,16 @@ void turnOff_LaunchpadLED1();
 void initialize_LaunchpadLED1();
 void toggle_LaunchpadLED1();
 
+void initialize_LaunchpadLED2_green();
+void turnOn_LaunchpadLED2_green();
+void turnOff_LaunchpadLED2_green();
+void toggle_LaunchpadLED2_green();
+
+void initialize_LaunchpadLED2_blue();
+void turnOn_LaunchpadLED2_blue();
+void turnOff_LaunchpadLED2_blue();
+void toggle_LaunchpadLED2_blue();
+
 uint8_t g_ui8TxBuffer[256];
 uint8_t g_ui8TxLength;
 
@@ -364,22 +374,69 @@ void initialize_LaunchpadLED1()
 {
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
 }
-
 void turnOn_LaunchpadLED1()
 {
     GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
 }
-
 void turnOff_LaunchpadLED1()
 {
     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
 }
-
 void toggle_LaunchpadLED1()
 {
     GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
 }
 
+void initialize_LaunchpadLED2_red()
+{
+    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);
+}
+void turnOn_LaunchpadLED2_red()
+{
+    GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN0);
+}
+void turnOff_LaunchpadLED2_red()
+{
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0);
+}
+void toggle_LaunchpadLED2_red()
+{
+    GPIO_toggleOutputOnPin(GPIO_PORT_P2, GPIO_PIN0);
+}
+
+void initialize_LaunchpadLED2_green()
+{
+    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN1);
+}
+void turnOn_LaunchpadLED2_green()
+{
+    GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN1);
+}
+void turnOff_LaunchpadLED2_green()
+{
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN1);
+}
+void toggle_LaunchpadLED2_green()
+{
+    GPIO_toggleOutputOnPin(GPIO_PORT_P2, GPIO_PIN1);
+}
+
+void initialize_LaunchpadLED2_blue()
+{
+    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN2);
+}
+void turnOn_LaunchpadLED2_blue()
+{
+    GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN2);
+}
+void turnOff_LaunchpadLED2_blue()
+{
+    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN2);
+}
+void toggle_LaunchpadLED2_blue()
+{
+    GPIO_toggleOutputOnPin(GPIO_PORT_P2, GPIO_PIN2);
+}
 
 int main(int argc, char** argv)
 {
@@ -669,6 +726,10 @@ int main(int argc, char** argv)
                     if(NFC_A_getSAK() == 0x00)
                     {
                         // T2T Tag State Machine
+                        if (!tagReseted){
+                            tagReseted = true;
+                            toggle_LaunchpadLED2_green();
+                        }
                         T2T_stateMachine();
                     }
                     else if(NFC_A_getSAK() & 0x20)
@@ -717,6 +778,9 @@ int main(int argc, char** argv)
         {
             // Clear LEDs (RX & TX)
             turnOff_LaunchpadLED1();
+            turnOff_LaunchpadLED2_red();//LaunchpadLED2_green
+            turnOff_LaunchpadLED2_green();
+            turnOff_LaunchpadLED2_blue();
             tagReseted = false;
         }
 
