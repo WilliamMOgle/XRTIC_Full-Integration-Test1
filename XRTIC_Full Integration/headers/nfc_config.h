@@ -30,7 +30,7 @@
 #define	NFC_CE_T4TA_ENABLED					0x00
 #define	NFC_CE_T4TB_ENABLED					0x00
 
-#define	NFC_RW_T2T_ENABLED					0x00
+#define	NFC_RW_T2T_ENABLED					0x01
 #define	NFC_RW_T3T_ENABLED					0x00
 #define	NFC_RW_T4TA_ENABLED					0x00
 #define	NFC_RW_T4TB_ENABLED					0x00
