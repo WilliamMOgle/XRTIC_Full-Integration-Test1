@@ -738,6 +738,23 @@ int main(int argc, char** argv)
     rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
 
+    //RFID POSITIVE
+    /*
+
+     MQTTMessage msgRFID;
+     msgRFID.dup = 0;
+     msgRFID.id = 0;
+     msgRFID.payload = "";
+     msgRFID.payloadlen = 0;
+     msgRFID.qos = QOS0;
+     msgRFID.retained = 0;
+
+     msgRFID.payload = "{\"type\":2,\"effect\":\"None\"}";
+     msgRFID.payloadlen = 58;
+     rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
+
+     */
+
     while(1)
     {
         transmitString("START NFC \n\r");
