@@ -99,7 +99,7 @@ void NFC_init(void)
 	g_bSupportCertification = 0;
 
 	// Default value
-	g_ui16LoopDelay = 500;
+	g_ui16LoopDelay = 10;//500;
 
 	// Store the nfc_buffer ptr in g_pui8RxData
 	g_pui8RxData = TRF79x0_getNfcBuffer();
@@ -205,7 +205,7 @@ tNfcState NFC_run(void)
 			else if(g_sNfcStatus.sNfcModeCurrent.bits.bNfcModePoll == 1
 					&& g_sNfcStatus.sNfcModeSupport.bits.bNfcModeListen == 0)
 			{
-				MCU_delayMillisecond((uint32_t) g_ui16LoopDelay);
+				MCU_delayMillisecond((uint32_t) g_ui16LoopDelay);//IS THIS NECESSARY?
 			}
 		}
 	}
@@ -618,7 +618,7 @@ tNfcState NFC_pollStateMachine(void)
 
 				ui16PICCTimeOut = NFC_Initiator_GetPICCTimeOut();
 
-				eTrfIrqStatus = NFC_waitForCommand(ui16PICCTimeOut);
+				eTrfIrqStatus = NFC_waitForCommand(ui16PICCTimeOut);    //blocking while loop until command is received
 
 				if(eTrfIrqStatus == IRQ_STATUS_RX_COMPLETE)
 				{
