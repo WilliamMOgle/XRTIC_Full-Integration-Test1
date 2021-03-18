@@ -743,7 +743,7 @@ int main(int argc, char** argv)
                             tagReseted = true;
                             toggle_LaunchpadLED2_green();
                         }
-                        T2T_stateMachine();
+                       T2T_stateMachine();
                     }
                     else if(NFC_A_getSAK() & 0x20)
                     {
@@ -785,16 +785,18 @@ int main(int argc, char** argv)
             }
 
             // Update only RSSI
-            updateLcdfcStatus(true);
+           updateLcdfcStatus(true);
         }
         else
         {
             // Clear LEDs (RX & TX)
-            turnOff_LaunchpadLED1();
-            turnOff_LaunchpadLED2_red();//LaunchpadLED2_green
-            turnOff_LaunchpadLED2_green();
-            turnOff_LaunchpadLED2_blue();
-            tagReseted = false;
+           if (tagReseted){
+               turnOff_LaunchpadLED1();
+               turnOff_LaunchpadLED2_red();//LaunchpadLED2_green
+               turnOff_LaunchpadLED2_green();
+               turnOff_LaunchpadLED2_blue();
+               tagReseted = false;
+           }
         }
 
         // Update Current State if it has changed.
@@ -836,8 +838,8 @@ int main(int argc, char** argv)
         // Check if any packets have been received from the NFC host.
         if(g_ui16BytesReceived > 0)
         {
-            Serial_processCommand();
-        }
+           Serial_processCommand();
+       }
 
         transmitString("END NFC \n\r");
 
@@ -1578,7 +1580,7 @@ void NFC_configuration(void)
     TRF79x0_setPowerSupply(g_bTRF5VSupply);
 
     // Milliseconds the NFC stack will be in listen mode
-    g_ui16ListenTime = 500;
+    g_ui16ListenTime = 100;
 
     // Set the time the NFC stack will be with the RF field disabled (listen mode)
     NFC_setListenTime(g_ui16ListenTime);
