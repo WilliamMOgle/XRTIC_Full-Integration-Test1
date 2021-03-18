@@ -44,6 +44,8 @@ void printString(char output[]);
 //UART INCLUDES
 #include "uart_HAL.h"
 
+#include "driver_7seg.h"
+
 //ROVER INCLUDES
 //#include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 
@@ -454,11 +456,6 @@ void toggle_LaunchpadLED2_blue()
 int main(int argc, char** argv)
 {
 
-
-
-
-
-
     bool tagReseted = true;
 
     tNfcState eTempNFCState;
@@ -721,6 +718,21 @@ int main(int argc, char** argv)
 
 
 
+    //message fore 7 segment
+    MQTTMessage msg7Seg;
+    msg7Seg.dup = 0;
+    msg7Seg.id = 0;
+    msg7Seg.payload = "";
+    msg7Seg.payloadlen = 0;
+    msg7Seg.qos = QOS0;
+    msg7Seg.retained = 0;
+
+
+    //turn 7 segment on to 0
+    segmentWrite('0');
+    msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
+    msg7Seg.payloadlen = 58;
+    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
 
     while(1)
