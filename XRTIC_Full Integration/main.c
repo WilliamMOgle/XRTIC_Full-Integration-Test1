@@ -739,7 +739,6 @@ int main(int argc, char** argv)
 
 
     //RFID POSITIVE
-    /*
 
      MQTTMessage msgRFID;
      msgRFID.dup = 0;
@@ -748,12 +747,6 @@ int main(int argc, char** argv)
      msgRFID.payloadlen = 0;
      msgRFID.qos = QOS0;
      msgRFID.retained = 0;
-
-     msgRFID.payload = "{\"type\":2,\"effect\":\"None\"}";
-     msgRFID.payloadlen = 58;
-     rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
-
-     */
 
     while(1)
     {
@@ -775,6 +768,9 @@ int main(int argc, char** argv)
                         if (!tagReseted){
                             tagReseted = true;
                             toggle_LaunchpadLED2_green();
+                            msgRFID.payload = "{\"type\":2,\"effect\":\"Life Plus 1\"}";
+                            msgRFID.payloadlen = 58;
+                            rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
                         }
                        T2T_stateMachine();
                     }
@@ -803,6 +799,9 @@ int main(int argc, char** argv)
                     if (!tagReseted){
                         tagReseted = true;
                         toggle_LaunchpadLED1();
+                        msgRFID.payload = "{\"type\":5,\"effect\":\"Life Minus 1\"}";
+                        msgRFID.payloadlen = 58;
+                        rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
                     }
                     T5T_stateMachine();
                 }
