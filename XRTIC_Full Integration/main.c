@@ -455,6 +455,9 @@ void toggle_LaunchpadLED2_blue()
 
 int main(int argc, char** argv)
 {
+    //7 segment initialization of outputs
+    initializeOutputs();
+
 
     bool tagReseted = true;
 
