@@ -136,6 +136,7 @@ char macStr[18];        // Formatted MAC Address String
 char uniqueID[9];       // Unique ID generated from TLV RAND NUM and MAC Address
 
 Network n;
+
 Client hMQTTClient;     // MQTT Client
 
 _u32  g_Status = 0;
@@ -2503,13 +2504,14 @@ static void messageArrived(MessageData* data) {
         min(BUFF_SIZE, data->topicName->lenstring.len));
     buf[data->topicName->lenstring.len] = 0;
 
+    //buf = topic
 
 
     strncpy(buf, data->message->payload,
         min(BUFF_SIZE, data->message->payloadlen));
     buf[data->message->payloadlen] = 0;
 
-
+    //buf  = payload
 
     struct controllerData_t tempData = parseControllerJSON(buf, 5);
     transmitString("Pressed: ");
