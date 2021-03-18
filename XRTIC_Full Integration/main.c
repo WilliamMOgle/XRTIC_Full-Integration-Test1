@@ -457,7 +457,7 @@ int main(int argc, char** argv)
 {
     //7 segment initialization of outputs
     initializeOutputs();
-
+    initBumpSensors();
 
     bool tagReseted = true;
 
@@ -549,8 +549,8 @@ int main(int argc, char** argv)
 
     setWheelDutyCycle(&left_wheel_data, 0.1);
     wheelUpdateMove(&left_wheel_data);
-
 */
+
     initMCU();
     initUART();
 
@@ -734,7 +734,7 @@ int main(int argc, char** argv)
     //turn 7 segment on to 0
     segmentWrite('0');
     msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
-    msg7Seg.payloadlen = 58;
+    msg7Seg.payloadlen = strlen(msg7Seg.payload);
     rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
 
@@ -750,7 +750,7 @@ int main(int argc, char** argv)
 
     while(1)
     {
-        transmitString("START NFC \n\r");
+
         eTempNFCState = NFC_run();
 
         if(eTempNFCState == NFC_DATA_EXCHANGE_PROTOCOL)
@@ -768,8 +768,16 @@ int main(int argc, char** argv)
                         if (!tagReseted){
                             tagReseted = true;
                             toggle_LaunchpadLED2_green();
-                            msgRFID.payload = "{\"type\":2,\"effect\":\"Life Plus 1\"}";
-                            msgRFID.payloadlen = 58;
+
+                            //turn 7 segment on to 0
+                            segmentWrite('b');
+                            msg7Seg.payload = "{\"sA\":0,\"sB\":0,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
+                            msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                            rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+
+
+                            msgRFID.payload = "{\"type\":2,\"effect\":\"None\"}";
+                            msgRFID.payloadlen = strlen(msgRFID.payload);
                             rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
                         }
                        T2T_stateMachine();
@@ -799,8 +807,15 @@ int main(int argc, char** argv)
                     if (!tagReseted){
                         tagReseted = true;
                         toggle_LaunchpadLED1();
-                        msgRFID.payload = "{\"type\":5,\"effect\":\"Life Minus 1\"}";
-                        msgRFID.payloadlen = 58;
+
+                        //turn 7 segment on to 0
+                        segmentWrite('a');
+                        msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":0,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
+                        msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                        rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+
+                        msgRFID.payload = "{\"type\":5,\"effect\":\"None\"}";
+                        msgRFID.payloadlen = strlen(msgRFID.payload);;
                         rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
                     }
                     T5T_stateMachine();
@@ -873,10 +888,8 @@ int main(int argc, char** argv)
            Serial_processCommand();
        }
 
-        transmitString("END NFC \n\r");
 
 
-        transmitString("START MQTT \n\r");
 
         rc = MQTTYield(&hMQTTClient, 10);
         if (rc != 0) {
@@ -904,10 +917,6 @@ int main(int argc, char** argv)
             publishID = 0;
         }
 
-        transmitString("END MQTT \n\r");
-
-        transmitString("START BUMP \n\r");
-
         //BUMP SENSOR CHECKS
         if(bumpSensorPressed(BUMP0))
             transmitString("Bump 0 Pressed!\n\r");
@@ -921,10 +930,10 @@ int main(int argc, char** argv)
             transmitString("Bump 4 Pressed!\n\r");
         if(bumpSensorPressed(BUMP5))
             transmitString("Bump 5 Pressed!\n\r");
-
-        transmitString("END BUMP \n\r");
-
     }
+
+
+
 
 }
 
