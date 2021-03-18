@@ -455,6 +455,10 @@ int main(int argc, char** argv)
 
 
 
+    //Init Timer
+    initSWTimer1();
+    //updateSW1WaitCycles(50000); //0.1ms per cycle
+    Init_Timer32_0(TIMER32_INIT_COUNT, CONTINUOUS);
 
 
 
@@ -620,7 +624,7 @@ int main(int argc, char** argv)
      * device will be lost
      */
 
-
+/*
     retVal = configureSimpleLinkToDefaultState();
     if(retVal < 0)
     {
@@ -632,10 +636,10 @@ int main(int argc, char** argv)
 
     transmitString(" Device is configured in default state \n\r");
 
-    /*
-     * Assumption is that the device is configured in station mode already
-     * and it is in its default state
-     */
+
+    // * Assumption is that the device is configured in station mode already
+    // * and it is in its default state
+
 
 
     retVal = sl_Start(0, 0, 0);
@@ -711,7 +715,7 @@ int main(int argc, char** argv)
     }
     transmitString(" Subscribed to uniqueID topic \n\r");
 
-
+*/
 
 
     //ROVER MOVE FUNCTION
@@ -720,8 +724,9 @@ int main(int argc, char** argv)
 
 
 
-
-
+    transmitString("MCLK: ");
+    transmitInt(CS_getMCLK());
+    SW_Timer_1.elapsedCycles = 0;
     while(1)
     {
         transmitString("START NFC \n\r");
@@ -840,9 +845,12 @@ int main(int argc, char** argv)
         }
 
         transmitString("END NFC \n\r");
+        transmitInt(SW_Timer_1.elapsedCycles);
+        transmitString("\n\r");
+        SW_Timer_1.elapsedCycles = 0;
 
 
-        transmitString("START MQTT \n\r");
+        /*transmitString("START MQTT \n\r");
 
         rc = MQTTYield(&hMQTTClient, 10);
         if (rc != 0) {
@@ -889,7 +897,7 @@ int main(int argc, char** argv)
             transmitString("Bump 5 Pressed!\n\r");
 
         transmitString("END BUMP \n\r");
-
+        */
     }
 
 }
@@ -1578,7 +1586,7 @@ void NFC_configuration(void)
     TRF79x0_setPowerSupply(g_bTRF5VSupply);
 
     // Milliseconds the NFC stack will be in listen mode
-    g_ui16ListenTime = 500;
+    g_ui16ListenTime = 10;//500;
 
     // Set the time the NFC stack will be with the RF field disabled (listen mode)
     NFC_setListenTime(g_ui16ListenTime);
