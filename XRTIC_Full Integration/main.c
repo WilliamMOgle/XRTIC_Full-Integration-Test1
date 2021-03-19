@@ -6,13 +6,10 @@
 // TI Information - Selective Disclosure
 //
 //*****************************************************************************
-#include <driverlib.h>
-#include "nfc_controller.h"
 
-/* Standard Includes */
-#include <stdint.h>
+#include "main.h"
 
-#include <stdbool.h>
+
 
 void printString(char output[]);
 
@@ -23,102 +20,8 @@ void printString(char output[]);
 #define DOGS102x6_DRAW_NORMAL 0x00
 #define DOGS102x6_DRAW_INVERT 0x01
 
-
-#include <tag_header.h>
-
-
-#include "bump_sensor.h"
-#include "jsonParser.h"
-
-//ROVER INCLUDES AND MQTT INCLUDES
-// Standard includes
-#include <stdlib.h>
-#include <string.h>
-
-#include <ti/devices/msp432p4xx/driverlib/driverlib.h>
-#include "simplelink.h"
-#include "sl_common.h"
-#include "MQTTClient.h"
-
-
-//UART INCLUDES
-#include "uart_HAL.h"
-
-//ROVER INCLUDES
-//#include <ti/devices/msp432p4xx/driverlib/driverlib.h>
-
-/* Standard Includes */
-//#include <stdint.h>
-//#include <stdbool.h>
-#include "RSLK_Wheel.h"
-#include "Timer_HAL.h"
-#include "RSLK_Rover.h"
-#include <pwm_HAL.h>
-
-//ROVER DEFINES
-#define SYS_CLK 48000000
-
-
-
 //ROVER AND MQTT STUFF
 
-/*
- * Values for below macros shall be modified per the access-point's (AP) properties
- * SimpleLink device will connect to following AP when the application is executed
- */
-/*
- * Matt's Information
- */
-
-//#define SSID_NAME       "DuhFastStuff2.4"       // Access point name to connect to.
-//#define PASSKEY         "bday0628"              //Password in case of secure AP
-
-/*
- * Amar's Information
- */
-
-#define SSID_NAME       "VeeCastFox178"       // Access point name to connect to.
-#define PASSKEY         "VeeLearCar256!%"              //Password in case of secure AP
-
-#define SEC_TYPE        SL_SEC_TYPE_WPA_WPA2     /* Security type of the Access piont */
-#define PASSKEY_LEN     pal_Strlen(PASSKEY)      /* Password length in case of secure AP */
-
-/*
- * MQTT server and topic properties that shall be modified per application
- */
-#define MQTT_BROKER_SERVER  "s1.airmqtt.com"
-#define MQTT_BROKER_PORT 10004
-#define MQTT_BROKER_USERNAME "a77buelx"
-#define MQTT_BROKER_PASSWORD "4pixgqnd"
-
-#define SUBSCRIBE_TOPIC "XRTIC20/Commands/Rover"
-#define PUBLISH_TOPIC "/msp/cc3100/fromLP"
-
-// MQTT message buffer size
-#define BUFF_SIZE 64
-
-
-#define APPLICATION_VERSION "1.0.0"
-
-#define MCLK_FREQUENCY 48000000
-#define PWM_PERIOD 255
-
-#define SL_STOP_TIMEOUT        0xFF
-
-#define SMALL_BUF           32
-#define MAX_SEND_BUF_SIZE   512
-#define MAX_SEND_RCV_SIZE   1024
-
-/* Application specific status/error codes */
-typedef enum{
-    DEVICE_NOT_IN_STATION_MODE = -0x7D0,        /* Choosing this number to avoid overlap with host-driver's error codes */
-    HTTP_SEND_ERROR = DEVICE_NOT_IN_STATION_MODE - 1,
-    HTTP_RECV_ERROR = HTTP_SEND_ERROR - 1,
-    HTTP_INVALID_RESPONSE = HTTP_RECV_ERROR -1,
-    STATUS_CODE_MAX = -0xBB8
-}e_AppStatusCodes;
-
-#define min(X,Y) ((X) < (Y) ? (X) : (Y))
 
 
 /*
@@ -129,26 +32,8 @@ volatile unsigned int S1buttonDebounce = 0;
 volatile unsigned int S2buttonDebounce = 0;
 volatile int publishID = 0;
 
-unsigned char macAddressVal[SL_MAC_ADDR_LEN];
-unsigned char macAddressLen = SL_MAC_ADDR_LEN;
 
-char macStr[18];        // Formatted MAC Address String
-char uniqueID[9];       // Unique ID generated from TLV RAND NUM and MAC Address
 
-Network n;
-Client hMQTTClient;     // MQTT Client
-
-_u32  g_Status = 0;
-struct{
-    _u8 Recvbuff[MAX_SEND_RCV_SIZE];
-    _u8 SendBuff[MAX_SEND_BUF_SIZE];
-
-    _u8 HostName[SMALL_BUF];
-    _u8 CityName[SMALL_BUF];
-
-    _u32 DestinationIP;
-    _i16 SockID;
-}g_AppData;
 
 /* Port mapper configuration register */
 
@@ -173,294 +58,28 @@ const Timer_A_UpModeConfig upConfigMQTT =
         TIMER_A_DO_CLEAR                        // Clear value
 };
 
-/*
- * GLOBAL VARIABLES -- End
- */
-
-
-/*
- * STATIC FUNCTION DEFINITIONS -- Start
- */
-static _i32 establishConnectionWithAP();
-static _i32 configureSimpleLinkToDefaultState();
-static _i32 initializeAppVariables();
-static void displayBanner();
-static void messageArrived(MessageData*);
-static void generateUniqueID();
-
-//END ROVER AND MQTT STUFF
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//
-// Buffer to store incoming packets from NFC host
-//
-uint8_t g_ui8SerialBuffer[265];
 
 //
 // Number of bytes received from the host
 //
 volatile uint16_t g_ui16BytesReceived = 0x00;
+/*
+ * GLOBAL VARIABLES -- End
+ */
 
-bool g_bEnableAutoSDD;
-bool g_bExtAmplifier;
-bool g_bTRF5VSupply;
-tTRF79x0_Version g_eTRFVersion;
-bool g_bSupportCertification;
-uint16_t g_ui16ListenTime;
+//END ROVER AND MQTT STUFF
 
-//////////////////////////////////////////////////
-tT5TStateMachine g_eT5TState;
-
-static uint16_t g_ui16T5TBlockNumber;
-static uint16_t g_ui16T5TBlockCount;
-static uint8_t g_pui8T5TRxBuffer[30];
-
-bool g_bT5TWaitForRsp;
-
-uint8_t * g_pui8T5TBuffer;
-
-uint16_t g_ui16T5TNdefLen;
-
-uint16_t g_ui16T5TMaxNdefLen;
-
-uint16_t g_ui16T5TNdefIndex;
-
-uint16_t g_ui16T5TTLVRemaining;
-
-uint8_t g_ui8T5TCurrentTlv;
-
-uint16_t g_ui16T5TSize;
-
-bool g_bT5TTLVSelected;
-
-bool g_bT5TTLVLengthKnown;
-
-uint8_t g_ui8T5TTLVLengthRemainBytes;
-
-uint16_t g_ui16T5TReadIndex;
-
-bool g_bT5TFormatting;
-
-//////////////////////////////////////////////////
-
-#if NFC_READER_WRITER_ENABLED
-    t_sNfcRWMode g_sRWSupportedModes;
-    t_sNfcRWCommBitrate g_sRWSupportedBitrates;
-    t_sIsoDEP_RWSetup g_sRWSetupOptions;
-    uint8_t g_ui8IsoDepInitiatorDID;
-#endif
-
-
-void NFC_configuration(void);
-void Serial_processCommand(void);
-void LCD_init(void);
-void updateLcdfcStatus(bool bUpdateRssiOnly);
-
-void turnOn_LaunchpadLED1();
-void turnOff_LaunchpadLED1();
-void initialize_LaunchpadLED1();
-void toggle_LaunchpadLED1();
-
-void initialize_LaunchpadLED2_green();
-void turnOn_LaunchpadLED2_green();
-void turnOff_LaunchpadLED2_green();
-void toggle_LaunchpadLED2_green();
-
-void initialize_LaunchpadLED2_blue();
-void turnOn_LaunchpadLED2_blue();
-void turnOff_LaunchpadLED2_blue();
-void toggle_LaunchpadLED2_blue();
-
-uint8_t g_ui8TxBuffer[256];
-uint8_t g_ui8TxLength;
-
-void LCD_stringDraw(uint8_t row, uint8_t col, char *word, uint8_t style)
-{
-
-}
-
-void NFC_emulatedT4TSniffer(void)
-{
-    uint16_t ui16FileID;
-    uint16_t ui16StartIdx;
-    uint8_t ui8BufferLength;
-    uint8_t ui8T4TStatus;
-
-    char pui8ByteBuffer[3];
-    char pui8WordBuffer[5];
-
-    ui8T4TStatus = ISO_7816_4_getCEStatus(&ui16FileID, &ui16StartIdx, &ui8BufferLength);
-
-    if ((ui8T4TStatus == CE_READ_FLAG) && (ui8BufferLength > 1))
-    {
-        //Serial_printf("Read File 0x",CE_FILE_STATUS);
-
-        // Print File ID
-        //convertWordToAscii(ui16FileID,(uint8_t *)pui8WordBuffer);
-
-        //Serial_printf(pui8WordBuffer,CE_FILE_STATUS);
-
-        //Serial_printf(" , Idx 0x",CE_FILE_STATUS);
-
-        // Print Index
-        //convertWordToAscii(ui16StartIdx,(uint8_t *) pui8WordBuffer);
-
-        //Serial_printf(pui8WordBuffer,CE_FILE_STATUS);
-
-        //Serial_printf(" , Len 0x",CE_FILE_STATUS);
-
-        // Print Len
-        //convertByteToAscii(ui8BufferLength,(uint8_t *) pui8ByteBuffer);
-
-        //Serial_printf(pui8ByteBuffer,CE_FILE_STATUS);
-
-        pui8ByteBuffer[0] = 0x0D;
-        pui8ByteBuffer[1] = 0x0A;
-        pui8ByteBuffer[2] = 0x00;
-
-        // Send New Line
-        //Serial_printf(pui8ByteBuffer,CE_FILE_STATUS);
-    }
-    else if(ui8T4TStatus == CE_WRITE_FLAG)
-    {
-        //Serial_printf("Write  File 0x",CE_FILE_STATUS);
-
-        // Print File ID
-        //convertWordToAscii(ui16FileID,(uint8_t *)pui8WordBuffer);
-
-        //Serial_printf(pui8WordBuffer,CE_FILE_STATUS);
-
-        //Serial_printf(" , Idx 0x",CE_FILE_STATUS);
-
-        // Print Index
-        //convertWordToAscii(ui16StartIdx,(uint8_t *) pui8WordBuffer);
-
-        //Serial_printf(pui8WordBuffer,CE_FILE_STATUS);
-
-        //Serial_printf(" , Len 0x",CE_FILE_STATUS);
-
-        // Print Len
-        //convertByteToAscii(ui8BufferLength,(uint8_t *) pui8ByteBuffer);
-
-        //Serial_printf(pui8ByteBuffer,CE_FILE_STATUS);
-
-        pui8ByteBuffer[0] = 0x0D;
-        pui8ByteBuffer[1] = 0x0A;
-        pui8ByteBuffer[2] = 0x00;
-
-        // Send New Line
-        //Serial_printf(pui8ByteBuffer,CE_FILE_STATUS);
-    }
-    else
-    {
-        // Do nothing
-    }
-}
-
-void NFC_initIDs(void)
-{
-    // NFC ID's
-    uint8_t pui8NfcAId[10] = {0x08,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09};   // Generic ISO14443 T4TA Tag
-    uint8_t pui8NfcBId[4] = {0x08,0x0A, 0xBE,0xEF}; // Generic ISO14443 T4TB Tag
-    uint8_t pui8NfcFId[8] = {0x01,0xFE,0x88,0x77,0x66,0x55,0x44,0x33};  // Type F ID for P2P
-
-    // Set the NFC Id's for Type A, Type B, and Type F
-    NFC_A_setNfcAId(pui8NfcAId,4);
-    NFC_B_setNfcBId(pui8NfcBId,4);
-    NFC_F_setNfcId2(pui8NfcFId,8);
-}
-
-void initialize_LaunchpadLED1()
-{
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
-}
-void turnOn_LaunchpadLED1()
-{
-    GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
-}
-void turnOff_LaunchpadLED1()
-{
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
-}
-void toggle_LaunchpadLED1()
-{
-    GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-}
-
-void initialize_LaunchpadLED2_red()
-{
-    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);
-}
-void turnOn_LaunchpadLED2_red()
-{
-    GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN0);
-}
-void turnOff_LaunchpadLED2_red()
-{
-    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0);
-}
-void toggle_LaunchpadLED2_red()
-{
-    GPIO_toggleOutputOnPin(GPIO_PORT_P2, GPIO_PIN0);
-}
-
-void initialize_LaunchpadLED2_green()
-{
-    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN1);
-}
-void turnOn_LaunchpadLED2_green()
-{
-    GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN1);
-}
-void turnOff_LaunchpadLED2_green()
-{
-    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN1);
-}
-void toggle_LaunchpadLED2_green()
-{
-    GPIO_toggleOutputOnPin(GPIO_PORT_P2, GPIO_PIN1);
-}
-
-void initialize_LaunchpadLED2_blue()
-{
-    GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN2);
-}
-void turnOn_LaunchpadLED2_blue()
-{
-    GPIO_setOutputHighOnPin(GPIO_PORT_P2, GPIO_PIN2);
-}
-void turnOff_LaunchpadLED2_blue()
-{
-    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN2);
-}
-void toggle_LaunchpadLED2_blue()
-{
-    GPIO_toggleOutputOnPin(GPIO_PORT_P2, GPIO_PIN2);
-}
 
 int main(int argc, char** argv)
 {
-
-
-
     //Init Timer
     initSWTimer1();
     //updateSW1WaitCycles(50000); //0.1ms per cycle
     Init_Timer32_0(TIMER32_INIT_COUNT, CONTINUOUS);
 
-
+    //7 segment initialization of outputs
+    initializeOutputs();
+    initBumpSensors();
 
     bool tagReseted = true;
 
@@ -480,56 +99,7 @@ int main(int argc, char** argv)
     // Initialize MCU
     MCU_init();
 
-    // Initialize Debug Pins as output
-    NFC_RF_FIELD_LED_DIR |= NFC_RF_FIELD_LED_BIT;
-    NFC_HOST_LED_DIR |= NFC_HOST_LED_BIT;
-
-    NFC_RW_LED_PDIR |= NFC_RW_LED_BIT;
-    NFC_P2P_LED_PDIR |= NFC_P2P_LED_BIT;
-    NFC_CE_LED_PDIR |= NFC_CE_LED_BIT;
-
-    // Clear NFC pins
-    NFC_RF_FIELD_LED_POUT &= ~NFC_RF_FIELD_LED_BIT;
-    NFC_HOST_LED_POUT &= ~NFC_HOST_LED_BIT;
-
-    NFC_RW_LED_POUT &= ~NFC_RW_LED_BIT;
-    NFC_P2P_LED_POUT &= ~NFC_P2P_LED_BIT;
-    NFC_CE_LED_POUT &= ~NFC_CE_LED_BIT;
-
-    //Enable interrupts globally
-    __enable_interrupt();
-
-    // Initialize USB Communication
-    //Serial_init();
-
-    // Initialize TRF7970
-    TRF79x0_init();
-
-    //Buttons_init(BUTTON_ALL);
-    //Buttons_interruptEnable(BUTTON_ALL);
-
-    TRF79x0_idleMode();
-
-    // Initialize the NFC Controller
-    NFC_init();
-
-    // This function will configure all the settings for each protocol
-    NFC_configuration();
-
-    // Initialize Type 4 Tag RTD Message
-    T4T_CE_initNDEF();
-
-    // Initialize IDs for NFC-A, NFC-B and NFC-F
-    NFC_initIDs();
-
-#if NFC_READER_WRITER_ENABLED
-    // Initialize the RW T2T, T3T, T4T and T5 state machines
-    T2T_init(g_ui8TxBuffer,256);
-    T3T_init(g_ui8TxBuffer,256);
-    T4T_init(g_ui8TxBuffer,256);
-    T5T_init(g_ui8TxBuffer,256);
-#endif
-
+    NFC_completeInit();
 
 
     //START SETUP FOR ROVER AND MQTT
@@ -540,27 +110,18 @@ int main(int argc, char** argv)
     initRSLKRover(SYS_CLK);
     initRSLKTimer32(RSLK_TIMER32_BASE);
     enableWheel(&right_wheel_data);
-    setWheelDirFwrd(&right_wheel_data);
+    setWheelDirForward(&right_wheel_data);
     enableWheel(&left_wheel_data);
-    setWheelDirFwrd(&left_wheel_data);
+    setWheelDirForward(&left_wheel_data);
+    stopRover();
 
-
-
-
-/*    setWheelDutyCycle(&right_wheel_data, 0.1);
-    wheelUpdateMove(&right_wheel_data);
-
-    setWheelDutyCycle(&left_wheel_data, 0.1);
-    wheelUpdateMove(&left_wheel_data);
-
-*/
     initMCU();
     initUART();
 
     transmitString("Hey");
 
-    _i32 retVal = -1;
 
+    _i32 retVal = -1;
     retVal = initializeAppVariables();
     ASSERT_ON_ERROR(retVal);
 
@@ -604,6 +165,11 @@ int main(int argc, char** argv)
     Interrupt_enableInterrupt(INT_PORT1);
     Interrupt_enableMaster();
 
+
+
+    //ROVER MOVE FUNCTION
+    //moveForwardForTime(270, 2000);      //move forward at 27 RPM for 2 seconds
+    //moveForwardIndefinitely(300);
     //END
 
     /* Configure command line interface */
@@ -611,117 +177,32 @@ int main(int argc, char** argv)
 
     displayBanner();
 
-
-    /*
-     * Following function configures the device to default state by cleaning
-     * the persistent settings stored in NVMEM (viz. connection profiles &
-     * policies, power policy etc)
-     *
-     * Applications may choose to skip this step if the developer is sure
-     * that the device is in its default state at start of application
-     *
-     * Note that all profiles and persistent settings that were done on the
-     * device will be lost
-     */
-
-/*
-    retVal = configureSimpleLinkToDefaultState();
-    if(retVal < 0)
-    {
-        if (DEVICE_NOT_IN_STATION_MODE == retVal)
-            transmitString(" Failed to configure the device in its default state \n\r");
-
-        LOOP_FOREVER();
-    }
-
-    transmitString(" Device is configured in default state \n\r");
-
-
-    // * Assumption is that the device is configured in station mode already
-    // * and it is in its default state
-
-
-
-    retVal = sl_Start(0, 0, 0);
-    if ((retVal < 0) ||
-        (ROLE_STA != retVal) )
-    {
-        transmitString(" Failed to start the device \n\r");
-        LOOP_FOREVER();
-    }
-
-    transmitString(" Device started as STATION \n\r");
-
-    // Connecting to WLAN AP
-    retVal = establishConnectionWithAP();
-    if(retVal < 0)
-    {
-        transmitString(" Failed to establish connection w/ an AP \n\r");
-        LOOP_FOREVER();
-    }
-
-    transmitString(" Connection established w/ AP and IP is acquired \n\r");
-
-    // Obtain MAC Address
-    sl_NetCfgGet(SL_MAC_ADDRESS_GET,NULL,&macAddressLen,(unsigned char *)macAddressVal);
-
-    // Print MAC Addres to be formatted string
-    snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-            macAddressVal[0], macAddressVal[1], macAddressVal[2], macAddressVal[3], macAddressVal[4], macAddressVal[5]);
-
-    // Generate 32bit unique ID from TLV Random Number and MAC Address
-    generateUniqueID();
-
     int rc = 0;
     unsigned char buf[100];
     unsigned char readbuf[100];
 
-    NewNetwork(&n);
-    rc = ConnectNetwork(&n, MQTT_BROKER_SERVER, MQTT_BROKER_PORT);
-
-    if (rc != 0) {
-        transmitString(" Failed to connect to MQTT broker \n\r");
-        LOOP_FOREVER();
-    }
-    transmitString(" Connected to MQTT broker \n\r");
-
-    MQTTClient(&hMQTTClient, &n, 1000, buf, 100, readbuf, 100);
-    MQTTPacket_connectData cdata = MQTTPacket_connectData_initializer;
-    cdata.MQTTVersion = 3;
-    cdata.clientID.cstring = uniqueID;
-    cdata.username.cstring = MQTT_BROKER_USERNAME;
-    cdata.password.cstring = MQTT_BROKER_PASSWORD;
-    rc = MQTTConnect(&hMQTTClient, &cdata);
-
-    if (rc != 0) {
-        transmitString(" Failed to start MQTT client \n\r");
-        LOOP_FOREVER();
-    }
-    transmitString(" Started MQTT client successfully \n\r");
-
-    rc = MQTTSubscribe(&hMQTTClient, SUBSCRIBE_TOPIC, QOS0, messageArrived);
-
-    if (rc != 0) {
-        transmitString(" Failed to subscribe to /msp/cc3100/demo topic \n\r");
-        LOOP_FOREVER();
-    }
-    transmitString(" Subscribed to /msp/cc3100/demo topic \n\r");
-
-    rc = MQTTSubscribe(&hMQTTClient, uniqueID, QOS0, messageArrived);
-
-    if (rc != 0) {
-        transmitString(" Failed to subscribe to uniqueID topic \n\r");
-        LOOP_FOREVER();
-    }
-    transmitString(" Subscribed to uniqueID topic \n\r");
-
-*/
+    setUpMQTT(retVal, buf, readbuf, rc);
 
 
-    //ROVER MOVE FUNCTION
-    //moveForwardForTime(270, 2000);      //move forward at 27 RPM for 2 seconds
 
 
+
+    //message fore 7 segment
+    MQTTMessage msg7Seg;
+    MQTTMessageInit(&msg7Seg);
+
+
+    //turn 7 segment on to 0
+    segmentWrite('0');
+    msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
+    msg7Seg.payloadlen = strlen(msg7Seg.payload);
+    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+
+
+    //RFID POSITIVE
+
+     MQTTMessage msgRFID;
+     MQTTMessageInit(&msgRFID);
 
 
     transmitString("MCLK: ");
@@ -729,134 +210,240 @@ int main(int argc, char** argv)
     SW_Timer_1.elapsedCycles = 0;
     while(1)
     {
-        transmitString("START NFC \n\r");
-        eTempNFCState = NFC_run();
 
-        if(eTempNFCState == NFC_DATA_EXCHANGE_PROTOCOL)
+        //NFC enable state machine
+        if(recMQTTData.newData)
         {
-            if(NFC_RW_getModeStatus(&sRWMode,&sRWBitrate))
+            if(recMQTTData.pressed && !strcmp(recMQTTData.key, "space"))
             {
-#if NFC_READER_WRITER_ENABLED
-                NFC_RW_LED_POUT |= NFC_RW_LED_BIT;
+                recMQTTData.nfcEnabled = true;
+                recMQTTData.newData = false;
+            }
+            else if(!recMQTTData.pressed && !strcmp(recMQTTData.key, "space"))
+            {
+                recMQTTData.nfcEnabled = false;
+                recMQTTData.newData = false;
+                //eTempNFCState == NFC_PROTOCOL_ACTIVATION;
+            }
+        }
 
-                if( sRWMode.bits.bNfcA == 1)
+
+        //if(recMQTTData.nfcEnabled)
+        //{
+            eTempNFCState = NFC_run();
+
+            if(eTempNFCState == NFC_DATA_EXCHANGE_PROTOCOL)
+            {
+                if(NFC_RW_getModeStatus(&sRWMode,&sRWBitrate))
                 {
-                    if(NFC_A_getSAK() == 0x00)
+    #if NFC_READER_WRITER_ENABLED
+                    NFC_RW_LED_POUT |= NFC_RW_LED_BIT;
+
+                    if( sRWMode.bits.bNfcA == 1)
                     {
-                        // T2T Tag State Machine
+                        if(NFC_A_getSAK() == 0x00)
+                        {
+                            // T2T Tag State Machine
+                            if (!tagReseted){
+                                tagReseted = true;
+                                toggle_LaunchpadLED2_green();
+
+                                //turn 7 segment on to 0
+                                //segmentWrite('b');
+                                //msg7Seg.payload = "{\"sA\":0,\"sB\":0,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
+                                //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                                //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+
+
+                                //msgRFID.payload = "{\"type\":2,\"effect\":\"None\"}";
+                                //msgRFID.payloadlen = strlen(msgRFID.payload);
+                                //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
+                            }
+                           T2T_stateMachine();
+                        }
+                        else if(NFC_A_getSAK() & 0x20)
+                        {
+                            // T4T Tag State Machine
+                            T4T_stateMachine();
+                        }
+                    }
+                    else if(sRWMode.bits.bNfcB == 1)
+                    {
+                        if(NFC_B_isISOCompliant())
+                        {
+                            // T4T Tag State Machine
+                            T4T_stateMachine();
+                        }
+                    }
+                    else if(sRWMode.bits.bNfcF == 1)
+                    {
+                        // T3T Tag State Machine
+                        T3T_stateMachine();
+                    }
+                    else if(sRWMode.bits.bISO15693 == 1)
+                    {
+                        // T5T Tag State Machine
                         if (!tagReseted){
                             tagReseted = true;
-                            toggle_LaunchpadLED2_green();
+                            toggle_LaunchpadLED1();
+
+                            //turn 7 segment on to 0
+                            //segmentWrite('a');
+                            //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":0,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
+                            //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                            //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+
+                            //msgRFID.payload = "{\"type\":5,\"effect\":\"None\"}";
+                            //msgRFID.payloadlen = strlen(msgRFID.payload);;
+                            //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
                         }
-                        T2T_stateMachine();
+                        T5T_stateMachine();
                     }
-                    else if(NFC_A_getSAK() & 0x20)
-                    {
-                        // T4T Tag State Machine
-                        T4T_stateMachine();
-                    }
+    #endif
                 }
-                else if(sRWMode.bits.bNfcB == 1)
+                else if(NFC_P2P_getModeStatus(&sP2PMode,&sP2PBitrate))
                 {
-                    if(NFC_B_isISOCompliant())
-                    {
-                        // T4T Tag State Machine
-                        T4T_stateMachine();
-                    }
+
                 }
-                else if(sRWMode.bits.bNfcF == 1)
+                else if(NFC_CE_getModeStatus(&sCEMode))
                 {
-                    // T3T Tag State Machine
-                    T3T_stateMachine();
+
                 }
-                else if(sRWMode.bits.bISO15693 == 1)
-                {
-                    // T5T Tag State Machine
-                    if (!tagReseted){
-                        tagReseted = true;
-                        toggle_LaunchpadLED1();
-                    }
-                    T5T_stateMachine();
-                }
-#endif
-            }
-            else if(NFC_P2P_getModeStatus(&sP2PMode,&sP2PBitrate))
-            {
 
-            }
-            else if(NFC_CE_getModeStatus(&sCEMode))
-            {
-
-            }
-
-            // Update only RSSI
-            updateLcdfcStatus(true);
-        }
-        else
-        {
-            // Clear LEDs (RX & TX)
-            turnOff_LaunchpadLED1();
-            turnOff_LaunchpadLED2_red();//LaunchpadLED2_green
-            turnOff_LaunchpadLED2_green();
-            turnOff_LaunchpadLED2_blue();
-            tagReseted = false;
-        }
-
-        // Update Current State if it has changed.
-        if(eCurrentNFCState != eTempNFCState)
-        {
-            __no_operation();
-
-            if(eCurrentNFCState != NFC_TARGET_WAIT_FOR_ACTIVATION
-                && eCurrentNFCState != NFC_STATE_IDLE
-                && (eTempNFCState == NFC_PROTOCOL_ACTIVATION
-                    || eTempNFCState == NFC_DISABLED))
-            {
-                eCurrentNFCState = eTempNFCState;
-
-#if NFC_READER_WRITER_ENABLED
-                // Initialize the RW T2T, T3T, T4T and T5 state machines
-                T2T_init(g_ui8TxBuffer,256);
-                T3T_init(g_ui8TxBuffer,256);
-                T4T_init(g_ui8TxBuffer,256);
-                T5T_init(g_ui8TxBuffer,256);
-#endif
-
-                // Clear RW, P2P and CE LEDs
-                NFC_RW_LED_POUT &= ~NFC_RW_LED_BIT;
-                NFC_P2P_LED_POUT &= ~NFC_P2P_LED_BIT;
-                NFC_CE_LED_POUT &= ~NFC_CE_LED_BIT;
-
-                buttonDebounce = 1;
-
-                //Serial_printf("DC",NFC_MODE_LOST);
+                // Update only RSSI
+               updateLcdfcStatus(true);
             }
             else
             {
-                eCurrentNFCState = eTempNFCState;
+                // Clear LEDs (RX & TX)
+               if (tagReseted){
+                   turnOff_LaunchpadLED1();
+                   turnOff_LaunchpadLED2_red();//LaunchpadLED2_green
+                   turnOff_LaunchpadLED2_green();
+                   turnOff_LaunchpadLED2_blue();
+                   tagReseted = false;
+               }
             }
 
+            // Update Current State if it has changed.
+            if(eCurrentNFCState != eTempNFCState)
+            {
+                __no_operation();
+
+                if(eCurrentNFCState != NFC_TARGET_WAIT_FOR_ACTIVATION
+                    && eCurrentNFCState != NFC_STATE_IDLE
+                    && (eTempNFCState == NFC_PROTOCOL_ACTIVATION
+                        || eTempNFCState == NFC_DISABLED))
+                {
+                    eCurrentNFCState = eTempNFCState;
+
+    #if NFC_READER_WRITER_ENABLED
+                    // Initialize the RW T2T, T3T, T4T and T5 state machines
+                    T2T_init(g_ui8TxBuffer,256);
+                    T3T_init(g_ui8TxBuffer,256);
+                    T4T_init(g_ui8TxBuffer,256);
+                    T5T_init(g_ui8TxBuffer,256);
+    #endif
+
+                    // Clear RW, P2P and CE LEDs
+                    NFC_RW_LED_POUT &= ~NFC_RW_LED_BIT;
+                    NFC_P2P_LED_POUT &= ~NFC_P2P_LED_BIT;
+                    NFC_CE_LED_POUT &= ~NFC_CE_LED_BIT;
+
+                    buttonDebounce = 1;
+
+                    //Serial_printf("DC",NFC_MODE_LOST);
+                }
+                else
+                {
+                    eCurrentNFCState = eTempNFCState;
+                }
+
+            }
+
+            // Check if any packets have been received from the NFC host.
+            if(g_ui16BytesReceived > 0)
+            {
+                Serial_processCommand();
+            }
+
+            transmitString("END NFC \n\r");
+            transmitInt(SW_Timer_1.elapsedCycles);
+            transmitString("\n\r");
+            SW_Timer_1.elapsedCycles = 0;
+               Serial_processCommand();
         }
 
-        // Check if any packets have been received from the NFC host.
-        if(g_ui16BytesReceived > 0)
-        {
-            Serial_processCommand();
-        }
 
-        transmitString("END NFC \n\r");
-        transmitInt(SW_Timer_1.elapsedCycles);
-        transmitString("\n\r");
-        SW_Timer_1.elapsedCycles = 0;
+        transmitString("START MQTT \n\r");
 
-
-        /*transmitString("START MQTT \n\r");
 
         rc = MQTTYield(&hMQTTClient, 10);
         if (rc != 0) {
             transmitString(" MQTT failed to yield \n\r");
             LOOP_FOREVER();
+        //}
+
+        //ROVER STATE MACHINE - BEGIN
+        if(recMQTTData.newData)
+        {
+            if(recMQTTData.pressed)
+            {
+                if(!strcmp(recMQTTData.key,"up"))
+                {
+                    moveForwardIndefinitely(200);
+                    recMQTTData.newData = false;
+                }
+                else if(!strcmp(recMQTTData.key,"down"))
+                {
+                    moveBackwardIndefinitely(200);
+                    recMQTTData.newData = false;
+                }
+                else if(!strcmp(recMQTTData.key,"right"))
+                {
+                    rotateRightIndefinitely(200);
+                    recMQTTData.newData = false;
+                }
+                else if(!strcmp(recMQTTData.key,"left"))
+                {
+                    rotateLeftIndefinitely(200);
+                    recMQTTData.newData = false;
+                }
+            }
+            else //released
+            {
+                switch(rover_state)
+                {
+                case MOVING_FORWARD:    if(!strcmp(recMQTTData.key,"up"))
+                                        {
+                                            stopRover();
+                                            recMQTTData.newData = false;
+                                        }break;
+                case MOVING_BACKWARD:   if(!strcmp(recMQTTData.key,"down"))
+                                        {
+                                            stopRover();
+                                            recMQTTData.newData = false;
+                                        }break;
+                case ROTATING_RIGHT:    if(!strcmp(recMQTTData.key,"right"))
+                                        {
+                                            stopRover();
+                                            recMQTTData.newData = false;
+                                        }break;
+                case ROTATING_LEFT:     if(!strcmp(recMQTTData.key,"left"))
+                                        {
+                                            stopRover();
+                                            recMQTTData.newData = false;
+                                        }break;
+                default: stopRover(); break;
+                }
+            }
         }
+
+        //END
+
+
+        //MessageData data1;
+        //messageArrived(&data1);
 
         if (publishID) {
             int rc = 0;
@@ -878,10 +465,7 @@ int main(int argc, char** argv)
             publishID = 0;
         }
 
-        transmitString("END MQTT \n\r");
-
-        transmitString("START BUMP \n\r");
-
+        /*
         //BUMP SENSOR CHECKS
         if(bumpSensorPressed(BUMP0))
             transmitString("Bump 0 Pressed!\n\r");
@@ -896,9 +480,15 @@ int main(int argc, char** argv)
         if(bumpSensorPressed(BUMP5))
             transmitString("Bump 5 Pressed!\n\r");
 
-        transmitString("END BUMP \n\r");
-        */
+*/
+
+        //transmitString("END BUMP \n\r");
+
+
     }
+
+
+
 
 }
 
@@ -1586,7 +1176,11 @@ void NFC_configuration(void)
     TRF79x0_setPowerSupply(g_bTRF5VSupply);
 
     // Milliseconds the NFC stack will be in listen mode
+//<<<<<<< HEAD
     g_ui16ListenTime = 10;//500;
+//=======
+
+//>>>>>>> branch 'master' of https://github.com/MattB99/XRTIC_Full_Integration.git
 
     // Set the time the NFC stack will be with the RF field disabled (listen mode)
     NFC_setListenTime(g_ui16ListenTime);
@@ -1882,10 +1476,10 @@ void Serial_processCommand(void)
 //! \return None.
 //
 //*****************************************************************************
-void LCD_init(void)
+/*void LCD_init(void)
 {
 
-}
+}*/
 
 
 //*****************************************************************************
@@ -2273,266 +1867,12 @@ void EusciA0_ISR(void)
  * ASYNCHRONOUS EVENT HANDLERS -- Start
  */
 
-/*!
-    \brief This function handles WLAN events
-
-    \param[in]      pWlanEvent is the event passed to the handler
-
-    \return         None
-
-    \note
-
-    \warning
-*/
-void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
-{
-    if(pWlanEvent == NULL)
-        transmitString(" [WLAN EVENT] NULL Pointer Error \n\r");
-
-    switch(pWlanEvent->Event)
-    {
-        case SL_WLAN_CONNECT_EVENT:
-        {
-            SET_STATUS_BIT(g_Status, STATUS_BIT_CONNECTION);
-
-            /*
-             * Information about the connected AP (like name, MAC etc) will be
-             * available in 'slWlanConnectAsyncResponse_t' - Applications
-             * can use it if required
-             *
-             * slWlanConnectAsyncResponse_t *pEventData = NULL;
-             * pEventData = &pWlanEvent->EventData.STAandP2PModeWlanConnected;
-             *
-             */
-        }
-        break;
-
-        case SL_WLAN_DISCONNECT_EVENT:
-        {
-            slWlanConnectAsyncResponse_t*  pEventData = NULL;
-
-            CLR_STATUS_BIT(g_Status, STATUS_BIT_CONNECTION);
-            CLR_STATUS_BIT(g_Status, STATUS_BIT_IP_ACQUIRED);
-
-            pEventData = &pWlanEvent->EventData.STAandP2PModeDisconnected;
-
-            /* If the user has initiated 'Disconnect' request, 'reason_code' is SL_USER_INITIATED_DISCONNECTION */
-            if(SL_USER_INITIATED_DISCONNECTION == pEventData->reason_code)
-            {
-                transmitString(" Device disconnected from the AP on application's request \n\r");
-            }
-            else
-            {
-                transmitString(" Device disconnected from the AP on an ERROR..!! \n\r");
-            }
-        }
-        break;
-
-        default:
-        {
-            transmitString(" [WLAN EVENT] Unexpected event \n\r");
-        }
-        break;
-    }
-}
-
-/*!
-    \brief This function handles events for IP address acquisition via DHCP
-           indication
-
-    \param[in]      pNetAppEvent is the event passed to the handler
-
-    \return         None
-
-    \note
-
-    \warning
-*/
-void SimpleLinkNetAppEventHandler(SlNetAppEvent_t *pNetAppEvent)
-{
-    if(pNetAppEvent == NULL)
-        transmitString(" [NETAPP EVENT] NULL Pointer Error \n\r");
-
-    switch(pNetAppEvent->Event)
-    {
-        case SL_NETAPP_IPV4_IPACQUIRED_EVENT:
-        {
-            SET_STATUS_BIT(g_Status, STATUS_BIT_IP_ACQUIRED);
-
-            /*
-             * Information about the connected AP's IP, gateway, DNS etc
-             * will be available in 'SlIpV4AcquiredAsync_t' - Applications
-             * can use it if required
-             *
-             * SlIpV4AcquiredAsync_t *pEventData = NULL;
-             * pEventData = &pNetAppEvent->EventData.ipAcquiredV4;
-             * <gateway_ip> = pEventData->gateway;
-             *
-             */
-        }
-        break;
-
-        default:
-        {
-            transmitString(" [NETAPP EVENT] Unexpected event \n\r");
-        }
-        break;
-    }
-}
-
-/*!
-    \brief This function handles callback for the HTTP server events
-
-    \param[in]      pHttpEvent - Contains the relevant event information
-    \param[in]      pHttpResponse - Should be filled by the user with the
-                    relevant response information
-
-    \return         None
-
-    \note
-
-    \warning
-*/
-void SimpleLinkHttpServerCallback(SlHttpServerEvent_t *pHttpEvent,
-                                  SlHttpServerResponse_t *pHttpResponse)
-{
-    /*
-     * This application doesn't work with HTTP server - Hence these
-     * events are not handled here
-     */
-    transmitString(" [HTTP EVENT] Unexpected event \n\r");
-}
-
-/*!
-    \brief This function handles general error events indication
-
-    \param[in]      pDevEvent is the event passed to the handler
-
-    \return         None
-*/
-void SimpleLinkGeneralEventHandler(SlDeviceEvent_t *pDevEvent)
-{
-    /*
-     * Most of the general errors are not FATAL are are to be handled
-     * appropriately by the application
-     */
-    transmitString(" [GENERAL EVENT] \n\r");
-}
-
-/*!
-    \brief This function handles socket events indication
-
-    \param[in]      pSock is the event passed to the handler
-
-    \return         None
-*/
-void SimpleLinkSockEventHandler(SlSockEvent_t *pSock)
-{
-    if(pSock == NULL)
-        transmitString(" [SOCK EVENT] NULL Pointer Error \n\r");
-
-    switch( pSock->Event )
-    {
-        case SL_SOCKET_TX_FAILED_EVENT:
-        {
-            /*
-            * TX Failed
-            *
-            * Information about the socket descriptor and status will be
-            * available in 'SlSockEventData_t' - Applications can use it if
-            * required
-            *
-            * SlSockEventData_t *pEventData = NULL;
-            * pEventData = & pSock->EventData;
-            */
-            switch( pSock->EventData.status )
-            {
-                case SL_ECLOSE:
-                    transmitString(" [SOCK EVENT] Close socket operation failed to transmit all queued packets\n\r");
-                break;
-
-
-                default:
-                    transmitString(" [SOCK EVENT] Unexpected event \n\r");
-                break;
-            }
-        }
-        break;
-
-        default:
-            transmitString(" [SOCK EVENT] Unexpected event \n\r");
-        break;
-    }
-}
-/*
- * ASYNCHRONOUS EVENT HANDLERS -- End
- */
 
 
 
 
-static void generateUniqueID() {
-    CRC32_setSeed(TLV->RANDOM_NUM_1, CRC32_MODE);
-    CRC32_set32BitData(TLV->RANDOM_NUM_2);
-    CRC32_set32BitData(TLV->RANDOM_NUM_3);
-    CRC32_set32BitData(TLV->RANDOM_NUM_4);
-    int i;
-    for (i = 0; i < 6; i++)
-    CRC32_set8BitData(macAddressVal[i], CRC32_MODE);
-
-    uint32_t crcResult = CRC32_getResult(CRC32_MODE);
-    sprintf(uniqueID, "%06X", crcResult);
-}
-
-//****************************************************************************
-//
-//!    \brief MQTT message received callback - Called when a subscribed topic
-//!                                            receives a message.
-//! \param[in]                  data is the data passed to the callback
-//!
-//! \return                        None
-//
-//****************************************************************************
-static void messageArrived(MessageData* data) {
-    char buf[BUFF_SIZE];
-
-    // Check for buffer overflow
-    if (data->topicName->lenstring.len >= BUFF_SIZE) {
-//      UART_PRINT("Topic name too long!\n\r");
-        return;
-    }
-    if (data->message->payloadlen >= BUFF_SIZE) {
-//      UART_PRINT("Payload too long!\n\r");
-        return;
-    }
 
 
-    strncpy(buf, data->topicName->lenstring.data,
-        min(BUFF_SIZE, data->topicName->lenstring.len));
-    buf[data->topicName->lenstring.len] = 0;
-
-
-
-    strncpy(buf, data->message->payload,
-        min(BUFF_SIZE, data->message->payloadlen));
-    buf[data->message->payloadlen] = 0;
-
-
-
-    struct controllerData_t tempData = parseControllerJSON(buf, 5);
-    transmitString("Pressed: ");
-    transmitInt(tempData.pressed);
-    transmitString(" | Key: ");
-    transmitString((unsigned char*)tempData.key);
-    transmitString("\n\r");
-
-
-
-    transmitString((unsigned char*)buf);
-    transmitString("\n\r");
-
-    return;
-}
 
 /*
  * Port 1 interrupt handler. This handler is called whenever the switch attached
@@ -2593,189 +1933,9 @@ void TA1_0_IRQHandler(void)
 }
 
 
-/*!
-    \brief This function configure the SimpleLink device in its default state. It:
-           - Sets the mode to STATION
-           - Configures connection policy to Auto and AutoSmartConfig
-           - Deletes all the stored profiles
-           - Enables DHCP
-           - Disables Scan policy
-           - Sets Tx power to maximum
-           - Sets power policy to normal
-           - Unregisters mDNS services
-           - Remove all filters
 
-    \param[in]      none
 
-    \return         On success, zero is returned. On error, negative is returned
-*/
-static _i32 configureSimpleLinkToDefaultState()
-{
-    SlVersionFull   ver = {0};
-    _WlanRxFilterOperationCommandBuff_t  RxFilterIdMask = {0};
 
-    _u8           val = 1;
-    _u8           configOpt = 0;
-    _u8           configLen = 0;
-    _u8           power = 0;
 
-    _i32          retVal = -1;
-    _i32          mode = -1;
 
-    mode = sl_Start(0, 0, 0);
-    ASSERT_ON_ERROR(mode);
-
-    /* If the device is not in station-mode, try configuring it in station-mode */
-    if (ROLE_STA != mode)
-    {
-        if (ROLE_AP == mode)
-        {
-            /* If the device is in AP mode, we need to wait for this event before doing anything */
-            while(!IS_IP_ACQUIRED(g_Status)) { _SlNonOsMainLoopTask(); }
-        }
-
-        /* Switch to STA role and restart */
-        retVal = sl_WlanSetMode(ROLE_STA);
-        ASSERT_ON_ERROR(retVal);
-
-        retVal = sl_Stop(SL_STOP_TIMEOUT);
-        ASSERT_ON_ERROR(retVal);
-
-        retVal = sl_Start(0, 0, 0);
-        ASSERT_ON_ERROR(retVal);
-
-        /* Check if the device is in station again */
-        if (ROLE_STA != retVal)
-        {
-            /* We don't want to proceed if the device is not coming up in station-mode */
-            ASSERT_ON_ERROR(DEVICE_NOT_IN_STATION_MODE);
-        }
-    }
-
-    /* Get the device's version-information */
-    configOpt = SL_DEVICE_GENERAL_VERSION;
-    configLen = sizeof(ver);
-    retVal = sl_DevGet(SL_DEVICE_GENERAL_CONFIGURATION, &configOpt, &configLen, (_u8 *)(&ver));
-    ASSERT_ON_ERROR(retVal);
-
-    /* Set connection policy to Auto + SmartConfig (Device's default connection policy) */
-    retVal = sl_WlanPolicySet(SL_POLICY_CONNECTION, SL_CONNECTION_POLICY(1, 0, 0, 0, 1), NULL, 0);
-    ASSERT_ON_ERROR(retVal);
-
-    /* Remove all profiles */
-    retVal = sl_WlanProfileDel(0xFF);
-    ASSERT_ON_ERROR(retVal);
-
-    /*
-     * Device in station-mode. Disconnect previous connection if any
-     * The function returns 0 if 'Disconnected done', negative number if already disconnected
-     * Wait for 'disconnection' event if 0 is returned, Ignore other return-codes
-     */
-    retVal = sl_WlanDisconnect();
-    if(0 == retVal)
-    {
-        /* Wait */
-        while(IS_CONNECTED(g_Status)) { _SlNonOsMainLoopTask(); }
-    }
-
-    /* Enable DHCP client*/
-    retVal = sl_NetCfgSet(SL_IPV4_STA_P2P_CL_DHCP_ENABLE,1,1,&val);
-    ASSERT_ON_ERROR(retVal);
-
-    /* Disable scan */
-    configOpt = SL_SCAN_POLICY(0);
-    retVal = sl_WlanPolicySet(SL_POLICY_SCAN , configOpt, NULL, 0);
-    ASSERT_ON_ERROR(retVal);
-
-    /* Set Tx power level for station mode
-       Number between 0-15, as dB offset from max power - 0 will set maximum power */
-    power = 0;
-    retVal = sl_WlanSet(SL_WLAN_CFG_GENERAL_PARAM_ID, WLAN_GENERAL_PARAM_OPT_STA_TX_POWER, 1, (_u8 *)&power);
-    ASSERT_ON_ERROR(retVal);
-
-    /* Set PM policy to normal */
-    retVal = sl_WlanPolicySet(SL_POLICY_PM , SL_NORMAL_POLICY, NULL, 0);
-    ASSERT_ON_ERROR(retVal);
-
-    /* Unregister mDNS services */
-    retVal = sl_NetAppMDNSUnRegisterService(0, 0);
-    ASSERT_ON_ERROR(retVal);
-
-    /* Remove  all 64 filters (8*8) */
-    pal_Memset(RxFilterIdMask.FilterIdMask, 0xFF, 8);
-    retVal = sl_WlanRxFilterSet(SL_REMOVE_RX_FILTER, (_u8 *)&RxFilterIdMask,
-                       sizeof(_WlanRxFilterOperationCommandBuff_t));
-    ASSERT_ON_ERROR(retVal);
-
-    retVal = sl_Stop(SL_STOP_TIMEOUT);
-    ASSERT_ON_ERROR(retVal);
-
-    retVal = initializeAppVariables();
-    ASSERT_ON_ERROR(retVal);
-
-    return retVal; /* Success */
-}
-
-/*!
-    \brief Connecting to a WLAN Access point
-
-    This function connects to the required AP (SSID_NAME).
-    The function will return once we are connected and have acquired IP address
-
-    \param[in]  None
-
-    \return     0 on success, negative error-code on error
-
-    \note
-
-    \warning    If the WLAN connection fails or we don't acquire an IP address,
-                We will be stuck in this function forever.
-*/
-static _i32 establishConnectionWithAP()
-{
-    SlSecParams_t secParams = {0};
-    _i32 retVal = 0;
-
-    secParams.Key = PASSKEY;
-    secParams.KeyLen = PASSKEY_LEN;
-    secParams.Type = SEC_TYPE;
-
-    retVal = sl_WlanConnect(SSID_NAME, pal_Strlen(SSID_NAME), 0, &secParams, 0);
-    ASSERT_ON_ERROR(retVal);
-
-    /* Wait */
-    while((!IS_CONNECTED(g_Status)) || (!IS_IP_ACQUIRED(g_Status))) { _SlNonOsMainLoopTask(); }
-
-    return SUCCESS;
-}
-
-/*!
-    \brief This function initializes the application variables
-
-    \param[in]  None
-
-    \return     0 on success, negative error-code on error
-*/
-static _i32 initializeAppVariables()
-{
-    g_Status = 0;
-    pal_Memset(&g_AppData, 0, sizeof(g_AppData));
-
-    return SUCCESS;
-}
-
-/*!
-    \brief This function displays the application's banner
-
-    \param      None
-
-    \return     None
-*/
-static void displayBanner()
-{
-    transmitString("\n\r\n\r");
-    transmitString(" MQTT Twitter Controlled RGB LED - Version ");
-    transmitString(APPLICATION_VERSION);
-    transmitString("\n\r*******************************************************************************\n\r");
-}
 

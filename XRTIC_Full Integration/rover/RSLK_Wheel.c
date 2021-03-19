@@ -89,6 +89,9 @@ void initWheel(RSLK_Wheel *wheel_data, uint32_t _sys_clk, Pin output_pin, Pin di
     wheel_data->meas_rpm = 0;
     wheel_data->t32_period_count = 0;
     wheel_data->t32_stop_count = 0;
+    wheel_data->wheel_rotation_tracker.ticks = 0;
+    wheel_data->wheel_rotation_tracker.targetTicks = 0;
+    wheel_data->stop_count_thres =  wheel_data->sys_clk / ENC_TO_RPM_CONST / STOPPED_RPM_DEFINE / wheel_data->t32_base_count ;
 
     wheel_data->pwm_settings.sys_clk = _sys_clk;
     wheel_data->pwm_settings.freq = WHEEL_PWM_FREQ;
@@ -98,6 +101,7 @@ void initWheel(RSLK_Wheel *wheel_data, uint32_t _sys_clk, Pin output_pin, Pin di
 
     initWheelGPIO(wheel_data);
     initWheelInterrupts(wheel_data);
+    setPWM(&wheel_data->pwm_settings);
 
 }
 
@@ -111,12 +115,12 @@ void disableWheel(RSLK_Wheel *wheel_data)
     GPIO_setOutputLowOnPin(wheel_data->wheel_slp_pin.portNum, wheel_data->wheel_slp_pin.pinNum);
 }
 
-void setWheelDirFwrd(RSLK_Wheel *wheel_data)
+void setWheelDirForward(RSLK_Wheel *wheel_data)
 {
     GPIO_setOutputLowOnPin(wheel_data->wheel_dir_pin.portNum, wheel_data->wheel_dir_pin.pinNum);
 }
 
-void setWheelDirBkwd(RSLK_Wheel *wheel_data)
+void setWheelDirBackward(RSLK_Wheel *wheel_data)
 {
     GPIO_setOutputHighOnPin(wheel_data->wheel_dir_pin.portNum, wheel_data->wheel_dir_pin.pinNum);
 }
@@ -146,7 +150,8 @@ bool encBInterruptCheck(RSLK_Wheel *wheel_data)
 void setWheelDutyCycle(RSLK_Wheel *wheel_data, double duty_cycle)
 {
     wheel_data->pwm_settings.dutyCycle = duty_cycle;
-    setPWM(&wheel_data->pwm_settings);
+    //setPWM(&wheel_data->pwm_settings);
+    updateDutyCycle(duty_cycle, &wheel_data->pwm_settings);
 }
 
 void wheelUpdateMove(RSLK_Wheel *wheel_data)
@@ -154,39 +159,22 @@ void wheelUpdateMove(RSLK_Wheel *wheel_data)
     generatePWM(&wheel_data->pwm_settings);
 }
 
-/*void initRightWheelGPIO()
+void updateWheelState(RSLK_Wheel *wheel_data)
 {
-    GPIO_setAsInputPin(RSLK_RIGHT_ENCB_PORT, RSLK_RIGHT_ENCB_PIN);  //Encoder inputs from motor
-    GPIO_setAsInputPin(RSLK_RIGHT_ENCA_PORT, RSLK_RIGHT_ENCA_PIN);
-    GPIO_setAsOutputPin(RSLK_RIGHT_SLP_PORT, RSLK_RIGHT_SLP_PIN);   //right motor sleep pin -active low
-    GPIO_setAsOutputPin(RSLK_RIGHT_DIR_PORT, RSLK_RIGHT_DIR_PIN);   //Right Direction pin. 0=FWD, 1=BCK
+    if(wheel_data->t32_stop_count  >= wheel_data->stop_count_thres)
+    {
+        wheel_data->wheel_state = STOPPED;
+        wheel_data->enc_period = wheel_data->sys_clk;
+    }
 }
 
-void initLeftWheelGPIO()
-{
-    GPIO_setAsInputPin(RSLK_LEFT_ENCB_PORT, RSLK_LEFT_ENCB_PIN);  //Encoder inputs from motor
-    GPIO_setAsInputPin(RSLK_LEFT_ENCA_PORT, RSLK_LEFT_ENCA_PIN);
-    GPIO_setAsOutputPin(RSLK_LEFT_SLP_PORT, RSLK_LEFT_SLP_PIN);   //LEFT motor sleep pin -active low
-    GPIO_setAsOutputPin(RSLK_LEFT_DIR_PORT, RSLK_LEFT_DIR_PIN);   //LEFT Direction pin. 0=FWD, 1=BCK
-}*/
-
-
-
-/*void initTimer32()
-{
-    Timer32_initModule(RSLK_TIMER32_BASE, TIMER32_PRESCALER_1, TIMER32_32BIT, TIMER32_PERIODIC_MODE);
-    Timer32_setCount(RSLK_TIMER32_BASE, T32_1_COUNT);
-    Timer32_enableInterrupt(RSLK_TIMER32_BASE);
-    Interrupt_enableInterrupt(INT_T32_INT2);
-    Timer32_startTimer(RSLK_TIMER32_BASE, false);
-}*/
 
 void setFowardWheelSpeedAsPercent(RSLK_Wheel *wheel_data, double percent)
 {
 
 }
 
-uint32_t calcCurrentMilliRPM(RSLK_Wheel *wheel_data)
+uint32_t calcCurrentRPM(RSLK_Wheel *wheel_data)
 {
     uint32_t rpm = wheel_data->sys_clk / wheel_data->enc_period * UNIT_FACTOR / ENC_TO_RPM_CONST / wheel_data->t32_base_count;
     wheel_data->meas_rpm = rpm;

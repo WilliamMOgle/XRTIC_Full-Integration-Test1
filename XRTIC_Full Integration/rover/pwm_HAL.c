@@ -104,7 +104,7 @@ bool findPinIndex(PWM_Params *pwm_settings)
 
 void setPWMArgs(PWM_Params *pwm_settings, uint32_t _sys_clk, double _freq, double _dutyCycle, uint16_t _portNum, uint16_t _pinNum)
 {
-    pwm_settings->sys_clk = _sys_clk;
+    pwm_settings->sys_clk = ACLK_FREQ;
     pwm_settings->freq = _freq;
     pwm_settings->dutyCycle = _dutyCycle;
     pwm_settings->output_pin.portNum = _portNum;
@@ -115,6 +115,7 @@ void setPWMArgs(PWM_Params *pwm_settings, uint32_t _sys_clk, double _freq, doubl
 
 void setPWM(PWM_Params *pwm_settings)
 {
+    pwm_settings->sys_clk = ACLK_FREQ;
     //Calculate PWM values:
     //calcPrescalar must be called first
     if(!calcPrescalar(pwm_settings)) while(1){}    //invalid frequency
@@ -129,14 +130,22 @@ void setPWM(PWM_Params *pwm_settings)
     if(!calcDutyValue(pwm_settings)) while(1){}   //invalid duty cycle
 
     //TimerA config
-    pwm_settings->PWM_config.clockSource = TIMER_A_CLOCKSOURCE_SMCLK;
+    pwm_settings->PWM_config.clockSource = TIMER_A_CLOCKSOURCE_ACLK;
     pwm_settings->PWM_config.clockSourceDivider = pwm_settings->prescalar;
     pwm_settings->PWM_config.compareOutputMode = TIMER_A_OUTPUTMODE_RESET_SET;
     pwm_settings->PWM_config.compareRegister = PWM_Pins[pwm_settings->pin_index].ccrx;
     pwm_settings->PWM_config.dutyCycle = pwm_settings->duty_value;
     pwm_settings->PWM_config.timerPeriod = pwm_settings->ccr0_value;
+    //Generate PWM function sets in Up mode
+
+    clockSourceInit();// enables ACLK at 128kHz
+
+    //for debugging
+    //uint32_t A_freq = CS_getACLK();
+    //uint32_t M_freq = CS_getMCLK();
 
     GPIOInit(pwm_settings);
+
 }
 
 bool calcDutyValue(PWM_Params *pwm_settings)
@@ -179,6 +188,7 @@ bool updateDutyCycle(double duty_cycle, PWM_Params *pwm_settings)
 
 void generatePWM(PWM_Params *pwm_settings)
 {
+    //Generates a PWM with timer running in up mode
     Timer_A_generatePWM(PWM_Pins[pwm_settings->pin_index].timer, &pwm_settings->PWM_config);
 }
 
@@ -188,4 +198,10 @@ void GPIOInit(PWM_Params *pwm_settings)
     GPIO_setOutputLowOnPin(pwm_settings->output_pin.portNum, pwm_settings->output_pin.pinNum);
     GPIO_setAsPeripheralModuleFunctionOutputPin(pwm_settings->output_pin.portNum, pwm_settings->output_pin.pinNum, GPIO_PRIMARY_MODULE_FUNCTION);
 
+}
+
+void clockSourceInit()
+{
+    CS_setReferenceOscillatorFrequency(CS_REFO_128KHZ);
+    CS_initClockSignal(CS_ACLK,CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 }

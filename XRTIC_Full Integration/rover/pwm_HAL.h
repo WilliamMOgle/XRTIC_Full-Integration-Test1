@@ -3,13 +3,14 @@
 #define PWM_HAL_H_
 
 //INCLUDES
-#include <driverlib.h>
+#include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 //#include <ti/devices/msp432p4xx/inc/msp.h>
 
 //#define DEF_CLK 48000000 //find __SYSTEM_CLOCK in system_msp432p401r.c
 
 #define NUM_PRESCALARS 20
 #define NUM_PWM_PINS 16
+#define ACLK_FREQ 128000
 
 typedef struct {
     uint16_t portNum; //use gpio.h pin/port definitions
@@ -41,6 +42,7 @@ Timer_A_PWMConfig PWM_config1;
 
 void setPWMArgs(PWM_Params *pwm_settings, uint32_t sys_clk, double freq, double dutyCycle, uint16_t portNum, uint16_t pinNum);
 void setPWM(PWM_Params *pwm_settings);
+void clockSourceInit();
 bool calcPrescalar(PWM_Params *pwm_settings);
 bool calcCCR0Value(PWM_Params *pwm_settings);
 bool calcDutyValue(PWM_Params *pwm_settings);

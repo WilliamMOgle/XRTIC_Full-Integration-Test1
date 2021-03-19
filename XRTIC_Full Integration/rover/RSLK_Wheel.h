@@ -8,7 +8,7 @@
 #ifndef RSLK_WHEEL_H_
 #define RSLK_WHEEL_H_
 
-#include <driverlib.h>
+#include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 #include <pwm_HAL.h>
 
 
@@ -18,6 +18,8 @@
 #define DECI_FACTOR         10
 #define UNIT_FACTOR         DECI_FACTOR
 #define WHEEL_PWM_FREQ      400
+#define STOPPED_RPM_DEFINE  1         //units of RPM
+//#define STOP_THRESHOLD
 //#define DEF_CLK             48000000
 //const Pin RSLK_right_wheel_pin = {GPIO_PORT_P2, GPIO_PIN6};
 //Right wheel pin definitions
@@ -59,8 +61,15 @@ typedef enum {
 }Wheel_State;
 
 typedef struct {
+    uint32_t ticks;
+    uint32_t targetTicks;
+}Wheel_Rotation_Tracker;
+
+typedef struct {
     //User should set these values
-    uint32_t sys_clk;           //Master system clock
+    //uint32_t m_clk;             //Master system clock
+    //uint32_t sm_clk;            //Subsystem master clock
+    uint32_t sys_clk;
     uint32_t des_rpm;           //the desired RPM from the user
     Pin wheel_pwm_pin;          //output PWM for wheel control
     Pin wheel_slp_pin;          //motor sleep pin - active low
@@ -78,7 +87,9 @@ typedef struct {
     uint32_t enc_period;        //number of t32 rollovers between enc pos edges
     uint32_t t32_period_count;  //software timer count for enc period
     uint32_t t32_stop_count;    //software timer count for max time without wheel rotation
+    uint32_t stop_count_thres;  //when t32_stop_count exceeds this value the wheel is defined as stopped
     uint32_t t32_base_count;    //value timer32 is set to continuously count to
+    Wheel_Rotation_Tracker wheel_rotation_tracker;      //tracks wheel rotation angle
     PWM_Params pwm_settings;    //PWM control struct
 
 }RSLK_Wheel;
@@ -90,7 +101,7 @@ void initLeftRSLKWheel(RSLK_Wheel *wheel_data, uint32_t _sys_clk, uint32_t);
 void initWheel(RSLK_Wheel *, uint32_t, Pin , Pin , Pin, Pin, Pin, uint16_t, volatile uint8_t*, uint8_t, uint32_t);
 void setForwardWheelSpeedAsPercent(RSLK_Wheel *wheel_data, double percent);
 //void setClockSpeed(uint32_t clk);
-uint32_t calcCurrentMilliRPM(RSLK_Wheel *wheel_data);
+uint32_t calcCurrentRPM(RSLK_Wheel *wheel_data);
 //void setDutyCycle(double duty_cycle, Wheel_Data *wheel_data);
 //void setDirection(bool fwd_or_bkwrd, Wheel_Data *wheel_data);
 //void rotateDegrees(uint32_t degrees, Wheel_Data *wheel_data);
@@ -100,11 +111,12 @@ void initWheelGPIO(RSLK_Wheel *);
 void initWheelInterrupts(RSLK_Wheel *);
 void enableWheel(RSLK_Wheel *);
 void disableWheel(RSLK_Wheel *);
-void setWheelDirFwrd(RSLK_Wheel *);
-void setWheelDirBkwd(RSLK_Wheel *);
+void setWheelDirForward(RSLK_Wheel *);
+void setWheelDirBackward(RSLK_Wheel *);
 void setWheelDutyCycle(RSLK_Wheel *, double);
 void wheelUpdateMove(RSLK_Wheel *);
 bool encBInterruptCheck(RSLK_Wheel *);
+void updateWheelState(RSLK_Wheel *);
 //void initTimer32();
 
 

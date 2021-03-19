@@ -62,6 +62,8 @@ struct motorData_t {
 struct controllerData_t {
     bool pressed;
     char* key;
+    bool newData;
+    bool nfcEnabled;
 };
 
 

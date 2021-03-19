@@ -8,7 +8,7 @@
 #ifndef TIMER_HAL_H_
 #define TIMER_HAL_H_
 
-#include <driverlib.h>
+#include <ti/devices/msp432p4xx/driverlib/driverlib.h>
 
 #define TIMER32_INIT_COUNT 4800 //0.1ms for 48MHz clock
 #define INIT_ELAPSED_CYCLES_COUNT 0
