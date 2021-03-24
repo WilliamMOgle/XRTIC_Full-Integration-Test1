@@ -22,9 +22,9 @@
  */
 
 //Willi's Information
-#define SSID_NAME       "SingleDigits"
-#define PASSKEY         ""
-#define SEC_TYPE        SL_SEC_TYPE_OPEN
+//#define SSID_NAME       "XRTIC-20"
+//#define PASSKEY         ""
+//#define SEC_TYPE        SL_SEC_TYPE_OPEN
 
 
 /*
@@ -35,22 +35,26 @@
 //#define PASSKEY         "bday0628"              //Password in case of secure AP
 
 /*
- * Amar's Information
+ * Amar's friend Information
  */
 
-/*#define SSID_NAME       "VeeCastFox178"       // Access point name to connect to.
-#define PASSKEY         "VeeLearCar256!%"              //Password in case of secure AP
-*/
-//#define SEC_TYPE        SL_SEC_TYPE_WPA_WPA2     /* Security type of the Access piont */
+//#define SSID_NAME       "VeeCastFox178"       // Access point name to connect to.
+//#define PASSKEY         "VeeLearCar256!%"              //Password in case of secure AP
+
+//Amar's Information
+#define SSID_NAME       "XRTIC-20"
+#define PASSKEY         "wariokart"
+
+#define SEC_TYPE        SL_SEC_TYPE_WPA_WPA2     /* Security type of the Access piont */
 #define PASSKEY_LEN     pal_Strlen(PASSKEY)      /* Password length in case of secure AP */
 
 /*
  * MQTT server and topic properties that shall be modified per application
  */
-#define MQTT_BROKER_SERVER  "s1.airmqtt.com"
-#define MQTT_BROKER_PORT 10004
-#define MQTT_BROKER_USERNAME "a77buelx"
-#define MQTT_BROKER_PASSWORD "4pixgqnd"
+#define MQTT_BROKER_SERVER  "192.168.1.2"
+#define MQTT_BROKER_PORT 1883
+#define MQTT_BROKER_USERNAME "admin"
+#define MQTT_BROKER_PASSWORD "password"
 
 #define SUBSCRIBE_TOPIC "XRTIC20/Commands/Rover"
 #define PUBLISH_TOPIC "/msp/cc3100/fromLP"
