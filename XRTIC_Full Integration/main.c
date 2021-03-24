@@ -107,6 +107,7 @@ int main(int argc, char** argv)
 
     //ROVER addition
     //rslk rover init
+    /*
     initRSLKRover(SYS_CLK);
     initRSLKTimer32(RSLK_TIMER32_BASE);
     enableWheel(&right_wheel_data);
@@ -114,7 +115,7 @@ int main(int argc, char** argv)
     enableWheel(&left_wheel_data);
     setWheelDirForward(&left_wheel_data);
     stopRover();
-
+    */
     initMCU();
     initUART();
 
@@ -390,6 +391,7 @@ int main(int argc, char** argv)
             LOOP_FOREVER();
         }
 
+        /*
         //ROVER STATE MACHINE - BEGIN
         if(recMQTTData.newData)
         {
@@ -446,6 +448,8 @@ int main(int argc, char** argv)
         }
 
         //END
+        */
+
 
 
         //MessageData data1;
