@@ -45,6 +45,7 @@
 									<listOptionValue builtIn="false" value="${PROJECT_ROOT}"/>
 									<listOptionValue builtIn="false" value="${PROJECT_LOC}/uart_cc3100"/>
 									<listOptionValue builtIn="false" value="${PROJECT_LOC}/spi_cc3100"/>
+									<listOptionValue builtIn="false" value="${PROJECT_LOC}/ir"/>
 									<listOptionValue builtIn="false" value="${PROJECT_LOC}/json"/>
 									<listOptionValue builtIn="false" value="${PROJECT_LOC}/bump"/>
 									<listOptionValue builtIn="false" value="${PROJECT_LOC}/driver7Seg"/>

@@ -9,7 +9,44 @@
 
 #include "main.h"
 
+//SENSOR STUFF
+#include "msp.h"
+#include "ir/Clock.h"
+#include "ir/I2CB1.h"
+#include "ir/CortexM.h"
+#include "ir/LPF.h"
+#include "ir/opt3101.h"
+#include "ir/LaunchPad.h"
 
+
+uint32_t Distances[3];
+uint32_t FilteredDistances[3];
+uint32_t Amplitudes[3];
+uint32_t TxChannel;
+uint32_t StartTime;
+uint32_t TimeToConvert; // in msec
+bool pollDistanceSensor(void){
+  if(OPT3101_CheckDistanceSensor()){
+    TxChannel = OPT3101_GetMeasurement(Distances,Amplitudes);
+    return true;
+  }
+  return false;
+}
+
+//END SENSOR STUFF
+
+
+// calibrated for 500mm track
+// right is raw sensor data from right sensor
+// return calibrated distance from center of Robot to right wall
+int32_t Right(int32_t right){
+  return  (right*(59*right + 7305) + 2348974)/32768;
+}
+// left is raw sensor data from left sensor
+// return calibrated distance from center of Robot to left wall
+int32_t Left(int32_t left){
+  return (1247*left)/2048 + 22;
+}
 
 void printString(char output[]);
 
@@ -72,6 +109,8 @@ volatile uint16_t g_ui16BytesReceived = 0x00;
 
 int main(int argc, char** argv)
 {
+
+
     //Init Timer
     initSWTimer1();
     //updateSW1WaitCycles(50000); //0.1ms per cycle
@@ -182,7 +221,48 @@ int main(int argc, char** argv)
     unsigned char buf[100];
     unsigned char readbuf[100];
 
-    setUpMQTT(retVal, buf, readbuf, rc);
+    //setUpMQTT(retVal, buf, readbuf, rc);
+
+
+
+
+
+    //SENSOR SET UP
+    int i = 0;
+    uint32_t channel = 1;
+    //DisableInterrupts();
+    Clock_Init48MHz();
+    SysTick->LOAD = 0x00FFFFFF;           // maximum reload value
+    SysTick->CTRL = 0x00000005;           // enable SysTick with no interrupts
+    I2CB1_Init(30); // baud rate = 12MHz/30=400kHz
+    //Init();
+    //Clear();
+    transmitString("OPT3101\n\r");
+
+    transmitString("L=\n\r");
+    //SetCursor(0, 2);
+    transmitString("C=\n\r");
+    //SetCursor(0, 3);
+    transmitString("R=\n\r");
+    //SetCursor(0, 4);
+    transmitString("Interrupts\n\r");
+    //SetCursor(0, 5);
+    transmitString("SNR L=\n\r");
+    //SetCursor(0, 6);
+    transmitString("SNR C=\n\r");
+    //SetCursor(0, 7);
+    transmitString("SNR R=\n\r");
+    OPT3101_Init();
+    OPT3101_Setup();
+    OPT3101_CalibrateInternalCrosstalk();
+    OPT3101_ArmInterrupts(&TxChannel, Distances, Amplitudes);
+    StartTime = SysTick->VAL;
+    TxChannel = 3;
+    OPT3101_StartMeasurementChannel(channel);
+    LPF_Init(100,32);
+    LPF_Init2(100,32);
+    LPF_Init3(100,32);
+    EnableInterrupts();
 
 
 
@@ -197,7 +277,7 @@ int main(int argc, char** argv)
     segmentWrite('0');
     msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
     msg7Seg.payloadlen = strlen(msg7Seg.payload);
-    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+    //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
 
     //RFID POSITIVE
@@ -455,6 +535,7 @@ int main(int argc, char** argv)
         //MessageData data1;
         //messageArrived(&data1);
 
+
         if (publishID) {
             int rc = 0;
             MQTTMessage msg;
@@ -491,9 +572,22 @@ int main(int argc, char** argv)
             transmitString("Bump 5 Pressed!\n\r");
 
 
+        //MINIMAL SENSOR STUFF
+        OPT3101_StartMeasurementChannel(channel);
+        channel = (channel+1)%3;
+        OPT3101_GetMeasurement(Distances,Amplitudes);
 
-        //transmitString("END BUMP \n\r");
+        transmitString("Left: ");
+        transmitInt(Distances[0]);
+        transmitString("mm | ");
+        transmitString("Center: ");
+        transmitInt(Distances[1]);
+        transmitString("mm | ");
+        transmitString("Right: ");
+        transmitInt(Distances[2]);
+        transmitString("mm\n\r");
 
+        //END MINIMAL SENSOR STUFF
 
     }
 
