@@ -38,8 +38,12 @@
  * Amar's friend Information
  */
 
-#define SSID_NAME       "VeeCastFox178"       // Access point name to connect to.
-#define PASSKEY         "VeeLearCar256!%"              //Password in case of secure AP
+//#define SSID_NAME       "VeeCastFox178"       // Access point name to connect to.
+//#define PASSKEY         "VeeLearCar256!%"              //Password in case of secure AP
+
+//Andrew's
+#define SSID_NAME       "JeffECENo.1_5G-1"       // Access point name to connect to.
+#define PASSKEY         "JeffNum1"              //Password in case of secure AP
 
 /*
  * Amar's  Information

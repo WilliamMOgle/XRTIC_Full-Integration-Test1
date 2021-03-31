@@ -48,7 +48,9 @@ struct sensorBumpData_t {
 };
 
 struct sensorIRData_t {
-
+    int leftDistance;
+    int centerDistance;
+    int rightDistance;
 };
 
 struct motorData_t {
@@ -76,6 +78,9 @@ void convertSimpleDataToJSONString(struct simpleData_t simpleData,
                                    char *returnedArray, int maxChars);
 
 void convertSevSegToJSONString(struct sevSegData_t sevSegData,
+                                   char *returnedArray, int maxChars);
+
+void convertSensorIRToJSONString(struct sensorIRData_t sensorIRData,
                                    char *returnedArray, int maxChars);
 
 void convertSensorRFIDToJSONString(struct sensorRFIDData_t sensorRFIDData,

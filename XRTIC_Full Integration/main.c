@@ -271,10 +271,8 @@ int main(int argc, char** argv)
 
     setUpMQTT(retVal, buf, readbuf, rc);
 
-
-
-
-
+    //set up IR
+    struct sensorIRData_t sensorIRData;
 
     //message fore 7 segment
     MQTTMessage msg7Seg;
@@ -641,11 +639,18 @@ int main(int argc, char** argv)
         transmitInt(Distances[2]);
         transmitString("mm\n\r");
 
+        sensorIRData.leftDistance = Distances[0];               //generate MQTT message
+        sensorIRData.rightDistance = Distances[1];
+        sensorIRData.centerDistance = Distances[2];
+
+        char * payload;
+        payload = (char*) malloc(50 * sizeof(char));
+        convertSensorIRToJSONString(sensorIRData, &payload, 50);
+        int x = 1;
+
         //END MINIMAL SENSOR STUFF
 
     }
-
-
 
 
 }

@@ -133,6 +133,17 @@ void convertSensorBumpToJSONString(struct sensorBumpData_t sensorBumpData,
 }
 
 //assumes that returnedArray is size maxChars + 1
+void convertSensorIRToJSONString(struct sensorIRData_t sensorIRData,
+                                   char *returnedArray, int maxChars)
+{
+    snprintf(returnedArray, maxChars, "{\"left\":%d,\"center\":%d,\"right\":%d}",
+             sensorIRData.leftDistance, sensorIRData.centerDistance, sensorIRData.rightDistance);
+
+    returnedArray[maxChars] = '\0';
+
+}
+
+//assumes that returnedArray is size maxChars + 1
 void convertMotorToJSONString(struct motorData_t MotorData,
                                    char *returnedArray, int maxChars)
 {
