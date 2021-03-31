@@ -182,38 +182,82 @@ int main(int argc, char** argv)
     unsigned char buf[100];
     unsigned char readbuf[100];
 
-    setUpMQTT(retVal, buf, readbuf, rc);
+//    setUpMQTT(retVal, buf, readbuf, rc);
 
 
 
 
 
     //message fore 7 segment
-    MQTTMessage msg7Seg;
-    MQTTMessageInit(&msg7Seg);
+    //MQTTMessage msg7Seg;
+    //MQTTMessageInit(&msg7Seg);
 
 
     //turn 7 segment on to 0
     segmentWrite('0');
-    msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
-    msg7Seg.payloadlen = strlen(msg7Seg.payload);
-    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+    //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
+    //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+    //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
 
     //RFID POSITIVE
 
-     MQTTMessage msgRFID;
-     MQTTMessageInit(&msgRFID);
+     //MQTTMessage msgRFID;
+     //MQTTMessageInit(&msgRFID);
 
 
     transmitString("MCLK: ");
     transmitInt(CS_getMCLK());
     SW_Timer_1.elapsedCycles = 0;
+
+    //INIT GRIPPER
+
+    Servo180 servoSettings;
+    //double degree = 145;
+    //bool countDir = false;
+
+    Init_Timer32_0(TIMER32_INIT_COUNT, CONTINUOUS);
+    initSWTimer1();
+    updateSW1WaitCycles(5000);
+
+    servo180InitArgs(&servoSettings,SYS_CLK,145,80,GPIO_PORT_P2,GPIO_PIN4);
+    closeServo(&servoSettings);
+
+    //END GRIPPER INIT
+
+
     while(1)
     {
 
+        //SERVO DEMO
+
+        if(SW1TimerRollover())
+                {
+                    //Comment either the toggle function
+                    //OR
+                    //Everything else in this if-statement
+                    //for a demonstration
+
+                    toggleOpenClose(&servoSettings);
+
+                    /*if(!countDir)
+                        degree -= 5;
+                    else
+                        degree += 5;
+
+                    if(degree >= 145 || degree <= 80)
+                    {
+                        countDir = !countDir;
+                    }
+
+                    moveServoToDegree(degree, &servoSettings);*/
+
+                }
+
+        //END SERVO DEMO
+
         //NFC enable state machine
-        if(recMQTTData.newData)
+        /*if(recMQTTData.newData)
         {
             if(recMQTTData.pressed && !strcmp(recMQTTData.key, "space"))
             {
@@ -226,7 +270,7 @@ int main(int argc, char** argv)
                 recMQTTData.newData = false;
                 //eTempNFCState == NFC_PROTOCOL_ACTIVATION;
             }
-        }
+        }*/
 
 
         //if(recMQTTData.nfcEnabled)
@@ -251,14 +295,14 @@ int main(int argc, char** argv)
 
                                 //turn 7 segment on to 0
                                 segmentWrite('b');
-                                msg7Seg.payload = "{\"sA\":0,\"sB\":0,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
-                                msg7Seg.payloadlen = strlen(msg7Seg.payload);
-                                rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+                                //msg7Seg.payload = "{\"sA\":0,\"sB\":0,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
+                                //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                                //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
 
-                                msgRFID.payload = "{\"type\":2,\"effect\":\"None\"}";
-                                msgRFID.payloadlen = strlen(msgRFID.payload);
-                                rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
+                                //msgRFID.payload = "{\"type\":2,\"effect\":\"None\"}";
+                                //msgRFID.payloadlen = strlen(msgRFID.payload);
+                                //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
                             }
                            T2T_stateMachine();
                         }
@@ -290,13 +334,13 @@ int main(int argc, char** argv)
 
                             //turn 7 segment on to 0
                             segmentWrite('a');
-                            msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":0,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
-                            msg7Seg.payloadlen = strlen(msg7Seg.payload);
-                            rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+                            //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":0,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
+                            //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                            //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
-                            msgRFID.payload = "{\"type\":5,\"effect\":\"None\"}";
-                            msgRFID.payloadlen = strlen(msgRFID.payload);;
-                            rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
+                            //msgRFID.payload = "{\"type\":5,\"effect\":\"None\"}";
+                            //msgRFID.payloadlen = strlen(msgRFID.payload);;
+                            //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
                         }
                         T5T_stateMachine();
                     }
@@ -353,9 +397,9 @@ int main(int argc, char** argv)
 
                     //turn 7 segment on to 0
                     segmentWrite('0');
-                    msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
-                    msg7Seg.payloadlen = strlen(msg7Seg.payload);
-                    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+                    //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
+                    //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                    //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
                     buttonDebounce = 1;
 
@@ -385,15 +429,15 @@ int main(int argc, char** argv)
         //transmitString("START MQTT \n\r");
 
 
-        rc = MQTTYield(&hMQTTClient, 10);
+        /*rc = MQTTYield(&hMQTTClient, 10);
         if (rc != 0) {
             transmitString(" MQTT failed to yield \n\r");
             LOOP_FOREVER();
-        }
+        }*/
 
 
         //ROVER STATE MACHINE - BEGIN
-        if(recMQTTData.newData)
+        /*if(recMQTTData.newData)
         {
             if(recMQTTData.pressed)
             {
@@ -445,7 +489,7 @@ int main(int argc, char** argv)
                 default: stopRover(); break;
                 }
             }
-        }
+        }*/
 
         //END
 
@@ -455,7 +499,7 @@ int main(int argc, char** argv)
         //MessageData data1;
         //messageArrived(&data1);
 
-        if (publishID) {
+        /*if (publishID) {
             int rc = 0;
             MQTTMessage msg;
             msg.dup = 0;
@@ -473,11 +517,11 @@ int main(int argc, char** argv)
             transmitString(" Published unique ID successfully \n\r");
 
             publishID = 0;
-        }
+        }*/
 
 
         //BUMP SENSOR CHECKS
-        if(bumpSensorPressed(BUMP0))
+        /*if(bumpSensorPressed(BUMP0))
             transmitString("Bump 0 Pressed!\n\r");
         if(bumpSensorPressed(BUMP1))
             transmitString("Bump 1 Pressed!\n\r");
@@ -488,7 +532,7 @@ int main(int argc, char** argv)
         if(bumpSensorPressed(BUMP4))
             transmitString("Bump 4 Pressed!\n\r");
         if(bumpSensorPressed(BUMP5))
-            transmitString("Bump 5 Pressed!\n\r");
+            transmitString("Bump 5 Pressed!\n\r");*/
 
 
 
