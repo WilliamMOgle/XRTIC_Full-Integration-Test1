@@ -221,7 +221,7 @@ int main(int argc, char** argv)
     unsigned char buf[100];
     unsigned char readbuf[100];
 
-    //setUpMQTT(retVal, buf, readbuf, rc);
+
 
 
 
@@ -268,6 +268,14 @@ int main(int argc, char** argv)
 
 
 
+
+    setUpMQTT(retVal, buf, readbuf, rc);
+
+
+
+
+
+
     //message fore 7 segment
     MQTTMessage msg7Seg;
     MQTTMessageInit(&msg7Seg);
@@ -275,25 +283,71 @@ int main(int argc, char** argv)
 
     //turn 7 segment on to 0
     segmentWrite('0');
+
     msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
     msg7Seg.payloadlen = strlen(msg7Seg.payload);
-    //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+
+    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
 
     //RFID POSITIVE
 
-     MQTTMessage msgRFID;
-     MQTTMessageInit(&msgRFID);
+    MQTTMessage msgRFID;
+    MQTTMessageInit(&msgRFID);
 
 
     transmitString("MCLK: ");
     transmitInt(CS_getMCLK());
     SW_Timer_1.elapsedCycles = 0;
+
+    //INIT GRIPPER
+
+    Servo180 servoSettings;
+    //double degree = 145;
+    //bool countDir = false;
+
+    Init_Timer32_0(TIMER32_INIT_COUNT, CONTINUOUS);
+    initSWTimer1();
+    updateSW1WaitCycles(5000);
+
+    servo180InitArgs(&servoSettings,SYS_CLK,145,80,GPIO_PORT_P2,GPIO_PIN4);
+    closeServo(&servoSettings);
+
+    //END GRIPPER INIT
+
+
     while(1)
     {
 
+        //SERVO DEMO
+
+        if(SW1TimerRollover())
+                {
+                    //Comment either the toggle function
+                    //OR
+                    //Everything else in this if-statement
+                    //for a demonstration
+
+                    toggleOpenClose(&servoSettings);
+
+                    /*if(!countDir)
+                        degree -= 5;
+                    else
+                        degree += 5;
+
+                    if(degree >= 145 || degree <= 80)
+                    {
+                        countDir = !countDir;
+                    }
+
+                    moveServoToDegree(degree, &servoSettings);*/
+
+                }
+
+        //END SERVO DEMO
+
         //NFC enable state machine
-        if(recMQTTData.newData)
+        /*if(recMQTTData.newData)
         {
             if(recMQTTData.pressed && !strcmp(recMQTTData.key, "space"))
             {
@@ -306,7 +360,7 @@ int main(int argc, char** argv)
                 recMQTTData.newData = false;
                 //eTempNFCState == NFC_PROTOCOL_ACTIVATION;
             }
-        }
+        }*/
 
 
         //if(recMQTTData.nfcEnabled)
@@ -433,9 +487,9 @@ int main(int argc, char** argv)
 
                     //turn 7 segment on to 0
                     segmentWrite('0');
-                    msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
-                    msg7Seg.payloadlen = strlen(msg7Seg.payload);
-                    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+                    //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
+                    //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                    //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
                     buttonDebounce = 1;
 
@@ -458,7 +512,7 @@ int main(int argc, char** argv)
             //transmitInt(SW_Timer_1.elapsedCycles);
             //transmitString("\n\r");
             //SW_Timer_1.elapsedCycles = 0;
-               Serial_processCommand();
+            Serial_processCommand();
 
 
 

@@ -13,6 +13,7 @@
 #include "nfc.h"
 #include <driverlib.h>
 #include <gpio_init.h>
+#include "servo180.h"
 
 
 /* Standard Includes */
