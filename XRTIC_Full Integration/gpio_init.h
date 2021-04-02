@@ -10,7 +10,7 @@
 
 #include <driverlib.h>
 
-
+void initialize_LaunchpadLEDs();
 void initialize_LaunchpadLED1();
 void turnOn_LaunchpadLED1();
 void turnOff_LaunchpadLED1();

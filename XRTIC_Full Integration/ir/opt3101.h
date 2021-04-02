@@ -65,6 +65,8 @@ policies, either expressed or implied, of the FreeBSD Project.
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "driverlib.h"
+#include "trf79x0.h"
 
 /**
  * Resets the OPT3101 distance sensor using its reset line and then waits for

@@ -13,7 +13,7 @@
 
 
 #ifdef MSP432P401R_LAUNCHPAD_ENABLED
-	void TRF79x0_isrHandler(void);
+	//void TRF79x0_isrHandler(void);
 #endif
 #define NFC_FIFO_SIZE 		255
 
@@ -92,7 +92,7 @@ uint8_t TRF79x0_init(void)
 	IRQ_CLR;
 
 #ifdef MSP432P401R_LAUNCHPAD_ENABLED
-	GPIO_registerInterrupt(TRF_IRQ_PORT,TRF79x0_isrHandler);
+	//GPIO_registerInterrupt(TRF_IRQ_PORT,TRF79x0_isrHandler);
 #endif
 
 	MCU_delayMillisecond(10);
@@ -2539,16 +2539,19 @@ void TRF79x0_setPowerSupply(bool bPowerSupply5V)
 }
 
 #ifdef MSP432P401R_LAUNCHPAD_ENABLED
-void TRF79x0_isrHandler(void)
+/*void TRF79x0_isrHandler(void)
 {
-    uint32_t status;
-
-    status = GPIO_getEnabledInterruptStatus(TRF_IRQ_PORT);
-    GPIO_clearInterruptFlag(TRF_IRQ_PORT, status);
-
-    if(status & TRF_IRQ)
+    if(P6->IFG & 0x01)
     {
-        g_ui8IrqFlag = 0x01;
+        uint32_t status;
+
+        status = GPIO_getEnabledInterruptStatus(TRF_IRQ_PORT);
+        GPIO_clearInterruptFlag(TRF_IRQ_PORT, status);
+
+        if(status & TRF_IRQ)
+        {
+            g_ui8IrqFlag = 0x01;
+        }
     }
-}
+}*/
 #endif

@@ -9,7 +9,42 @@
 
 #include "main.h"
 
+//SENSOR STUFF
+#include "msp.h"
+#include "ir/Clock.h"
+#include "ir/I2CB1.h"
+#include "ir/CortexM.h"
+#include "ir/LPF.h"
+#include "ir/opt3101.h"
+#include "ir/LaunchPad.h"
 
+uint32_t Distances[3];
+uint32_t FilteredDistances[3];
+uint32_t Amplitudes[3];
+uint32_t TxChannel;
+uint32_t StartTime;
+uint32_t TimeToConvert; // in msec
+bool pollDistanceSensor(void){
+  if(OPT3101_CheckDistanceSensor()){
+    TxChannel = OPT3101_GetMeasurement(Distances,Amplitudes);
+    return true;
+  }
+  return false;
+}
+
+// calibrated for 500mm track
+// right is raw sensor data from right sensor
+// return calibrated distance from center of Robot to right wall
+int32_t Right(int32_t right){
+  return  (right*(59*right + 7305) + 2348974)/32768;
+}
+// left is raw sensor data from left sensor
+// return calibrated distance from center of Robot to left wall
+int32_t Left(int32_t left){
+  return (1247*left)/2048 + 22;
+}
+
+//END SENSOR STUFF
 
 void printString(char output[]);
 
@@ -93,7 +128,7 @@ int main(int argc, char** argv)
 
 
     NFC_completeInit();
-
+    initialize_LaunchpadLEDs();
 
     //Init Timer
     initSWTimer1();
@@ -183,6 +218,47 @@ int main(int argc, char** argv)
     unsigned char buf[100];
     unsigned char readbuf[100];
 
+
+    //SENSOR SET UP
+    int i = 0;
+    uint32_t channel = 1;
+    //DisableInterrupts();
+    //Clock_Init48MHz();
+    SysTick->LOAD = 0x00FFFFFF;           // maximum reload value
+    SysTick->CTRL = 0x00000005;           // enable SysTick with no interrupts
+    I2CB1_Init(30); // baud rate = 12MHz/30=400kHz
+    //Init();
+    //Clear();
+    transmitString("OPT3101\n\r");
+
+    transmitString("L=\n\r");
+    //SetCursor(0, 2);
+    transmitString("C=\n\r");
+    //SetCursor(0, 3);
+    transmitString("R=\n\r");
+    //SetCursor(0, 4);
+    transmitString("Interrupts\n\r");
+    //SetCursor(0, 5);
+    transmitString("SNR L=\n\r");
+    //SetCursor(0, 6);
+    transmitString("SNR C=\n\r");
+    //SetCursor(0, 7);
+    transmitString("SNR R=\n\r");
+    OPT3101_Init();
+    OPT3101_Setup();
+    OPT3101_CalibrateInternalCrosstalk();
+    OPT3101_ArmInterrupts(&TxChannel, Distances, Amplitudes);
+    StartTime = SysTick->VAL;
+    //TxChannel = 3;
+    //OPT3101_StartMeasurementChannel(channel);
+    OPT3101_StartMeasurement();
+    LPF_Init(100,32);
+    LPF_Init2(100,32);
+    LPF_Init3(100,32);
+    //EnableInterrupts();
+
+    //END IR INIT
+
     //setUpMQTT(retVal, buf, readbuf, rc);
 
     //message fore 7 segment
@@ -203,11 +279,56 @@ int main(int argc, char** argv)
      MQTTMessageInit(&msgRFID);
 
 
+     //INIT GRIPPER
+
+     Servo180 servoSettings;
+     //double degree = 145;
+     //bool countDir = false;
+
+     Init_Timer32_0(TIMER32_INIT_COUNT, CONTINUOUS);
+     initSWTimer1();
+     initSWTimer2();
+     updateSW1WaitCycles(5000);
+
+     servo180InitArgs(&servoSettings,SYS_CLK,145,80,GPIO_PORT_P2,GPIO_PIN4);
+     closeServo(&servoSettings);
+
+     //END GRIPPER INIT
+
     transmitString("MCLK: ");
     transmitInt(CS_getMCLK());
     SW_Timer_1.elapsedCycles = 0;
+
+    uint8_t count = 2;
+    bool tag_present = false;
     while(1)
     {
+
+
+        //SERVO DEMO
+
+        if(SW1TimerRollover())
+                {
+                    //Comment either the toggle function
+                    //OR
+                    //Everything else in this if-statement
+                    //for a demonstration
+
+                    toggleOpenClose(&servoSettings);
+
+                    /*if(!countDir)
+                        degree -= 5;
+                    else
+                        degree += 5;
+                    if(degree >= 145 || degree <= 80)
+                    {
+                        countDir = !countDir;
+                    }
+                    moveServoToDegree(degree, &servoSettings);*/
+
+                }
+
+        //END SERVO DEMO
 
         //NFC enable state machine
         /*if(recMQTTData.newData)
@@ -232,6 +353,12 @@ int main(int argc, char** argv)
 
             if(eTempNFCState == NFC_DATA_EXCHANGE_PROTOCOL)
             {
+
+                if(count != 2)
+                {
+                    count = 2;
+                }
+
                 if(NFC_RW_getModeStatus(&sRWMode,&sRWBitrate))
                 {
     #if NFC_READER_WRITER_ENABLED
@@ -242,10 +369,11 @@ int main(int argc, char** argv)
                         if(NFC_A_getSAK() == 0x00)
                         {
                             // T2T Tag State Machine
-                            if (!tagReseted){
-                                tagReseted = true;
-                                toggle_LaunchpadLED2_green();
-
+                            if(tag_present == false)
+                            {
+                                turnOn_LaunchpadLED2_green();
+                                transmitString("Type 2 Tag Detect\n\r");
+                                tag_present = true;
                                 //turn 7 segment on to 0
                                 segmentWrite('b');
                                // msg7Seg.payload = "{\"sA\":0,\"sB\":0,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
@@ -257,7 +385,7 @@ int main(int argc, char** argv)
                                 //msgRFID.payloadlen = strlen(msgRFID.payload);
                                 //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
                             }
-                           T2T_stateMachine();
+                            T2T_stateMachine();
                         }
                         else if(NFC_A_getSAK() & 0x20)
                         {
@@ -281,12 +409,13 @@ int main(int argc, char** argv)
                     else if(sRWMode.bits.bISO15693 == 1)
                     {
                         // T5T Tag State Machine
-                        if (!tagReseted){
-                            tagReseted = true;
-                            toggle_LaunchpadLED1();
-
+                        if(tag_present == false)
+                        {
+                            turnOn_LaunchpadLED2_blue();
+                            transmitString("Type 5 Tag Detect\n\r");
                             //turn 7 segment on to 0
                             segmentWrite('a');
+                            tag_present = true;
                             //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":0,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
                             //msg7Seg.payloadlen = strlen(msg7Seg.payload);
                             //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
@@ -295,7 +424,6 @@ int main(int argc, char** argv)
                             //msgRFID.payloadlen = strlen(msgRFID.payload);;
                             //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
                         }
-                        T5T_stateMachine();
                     }
     #endif
                 }
@@ -309,18 +437,27 @@ int main(int argc, char** argv)
                 }
 
                 // Update only RSSI
-               updateLcdfcStatus(true);
+               //updateLcdfcStatus(true);
             }
             else
             {
                 // Clear LEDs (RX & TX)
-               if (tagReseted){
+                if(count != 0)
+                    count--;
+
+                if(count == 0)
+                {
                    turnOff_LaunchpadLED1();
                    turnOff_LaunchpadLED2_red();//LaunchpadLED2_green
                    turnOff_LaunchpadLED2_green();
                    turnOff_LaunchpadLED2_blue();
-                   tagReseted = false;
-               }
+
+                   NFC_RW_LED_POUT &= ~NFC_RW_LED_BIT;
+                   NFC_P2P_LED_POUT &= ~NFC_P2P_LED_BIT;
+                   NFC_CE_LED_POUT &= ~NFC_CE_LED_BIT;
+                   tag_present = false;
+                }
+
             }
 
             // Update Current State if it has changed.
@@ -338,16 +475,8 @@ int main(int argc, char** argv)
     #if NFC_READER_WRITER_ENABLED
                     // Initialize the RW T2T, T3T, T4T and T5 state machines
                     T2T_init(g_ui8TxBuffer,256);
-                    T3T_init(g_ui8TxBuffer,256);
-                    T4T_init(g_ui8TxBuffer,256);
                     T5T_init(g_ui8TxBuffer,256);
     #endif
-
-                    // Clear RW, P2P and CE LEDs
-                    NFC_RW_LED_POUT &= ~NFC_RW_LED_BIT;
-                    NFC_P2P_LED_POUT &= ~NFC_P2P_LED_BIT;
-                    NFC_CE_LED_POUT &= ~NFC_CE_LED_BIT;
-
                     //turn 7 segment on to 0
                     segmentWrite('0');
                    // msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
@@ -355,8 +484,6 @@ int main(int argc, char** argv)
                     //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
                     buttonDebounce = 1;
-
-                    //Serial_printf("DC",NFC_MODE_LOST);
                 }
                 else
                 {
@@ -471,7 +598,7 @@ int main(int argc, char** argv)
 
 */
         //BUMP SENSOR CHECKS
-        if(bumpSensorPressed(BUMP0))
+        /*if(bumpSensorPressed(BUMP0))
             transmitString("Bump 0 Pressed!\n\r");
         if(bumpSensorPressed(BUMP1))
             transmitString("Bump 1 Pressed!\n\r");
@@ -482,11 +609,45 @@ int main(int argc, char** argv)
         if(bumpSensorPressed(BUMP4))
             transmitString("Bump 4 Pressed!\n\r");
         if(bumpSensorPressed(BUMP5))
-            transmitString("Bump 5 Pressed!\n\r");
+            transmitString("Bump 5 Pressed!\n\r");*/
 
 
 
         //transmitString("END BUMP \n\r");
+
+
+        //MINIMAL SENSOR STUFF
+        /*OPT3101_StartMeasurementChannel(channel);
+        if(channel < 2)
+        {
+            channel++;
+        }
+        else
+        {
+            channel = 0;
+        }
+        OPT3101_GetMeasurement(Distances,Amplitudes);
+
+        transmitString("Left: ");
+        transmitInt(Distances[0]);
+        transmitString("mm | ");
+        transmitString("Center: ");
+        transmitInt(Distances[1]);
+        transmitString("mm | ");
+        transmitString("Right: ");
+        transmitInt(Distances[2]);
+        transmitString("mm\n\r");/*
+
+        /*sensorIRData.leftDistance = Distances[0];               //generate MQTT message
+        sensorIRData.rightDistance = Distances[1];
+        sensorIRData.centerDistance = Distances[2];
+
+        char * payload;
+        payload = (char*) malloc(50 * sizeof(char));
+        convertSensorIRToJSONString(sensorIRData, &payload, 50);
+        int x = 1;*/
+
+        //END MINIMAL SENSOR STUFF
 
 
     }
@@ -1499,7 +1660,7 @@ void Serial_processCommand(void)
 //! \return None.
 //
 //*****************************************************************************
-void updateLcdfcStatus(bool bUpdateRssiOnly)
+/*void updateLcdfcStatus(bool bUpdateRssiOnly)
 {
     static uint8_t ui8RssiValue = 0x00;
     char pui8Buffer[3];
@@ -1839,7 +2000,7 @@ void updateLcdfcStatus(bool bUpdateRssiOnly)
             //Serial_printf(pui8Buffer,CE_RSSI_DATA);
         }
     }
-}
+}*/
 
 /*
 * EUSCI A0 UART interrupt handler. Receives data from GUI and sets LED color/blink frequency

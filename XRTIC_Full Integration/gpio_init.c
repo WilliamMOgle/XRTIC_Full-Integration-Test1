@@ -8,6 +8,14 @@
 #include <gpio_init.h>
 
 
+void initialize_LaunchpadLEDs()
+{
+    initialize_LaunchpadLED1();
+    initialize_LaunchpadLED2_red();
+    initialize_LaunchpadLED2_blue();
+    initialize_LaunchpadLED2_green();
+}
+
 void initialize_LaunchpadLED1()
 {
     GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);

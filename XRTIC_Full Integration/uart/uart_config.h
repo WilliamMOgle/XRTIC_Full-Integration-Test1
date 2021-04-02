@@ -14,9 +14,9 @@
 
 //9600 BAUD RATE
 #define CLK_SRC                 EUSCI_A_UART_CLOCKSOURCE_SMCLK
-#define UART_PRESCALE           78//312
-#define FIRST_MOD_REG           2//8
-#define SECOND_MOD_REG          0//170
+#define UART_PRESCALE           6//78//312
+#define FIRST_MOD_REG           8//2//8
+#define SECOND_MOD_REG          17//0//170
 #define PARITY                  EUSCI_A_UART_NO_PARITY
 #define LSB_FIRST               EUSCI_A_UART_LSB_FIRST
 #define NUM_STOP_BITS           EUSCI_A_UART_ONE_STOP_BIT
