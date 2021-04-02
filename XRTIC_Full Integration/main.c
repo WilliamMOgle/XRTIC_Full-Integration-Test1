@@ -181,7 +181,7 @@ int main(int argc, char** argv)
     unsigned char buf[100];
     unsigned char readbuf[100];
 
-    setUpMQTT(retVal, buf, readbuf, rc);
+    //setUpMQTT(retVal, buf, readbuf, rc);
 
 
 
@@ -194,9 +194,9 @@ int main(int argc, char** argv)
 
     //turn 7 segment on to 0
     segmentWrite('0');
-    msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
-    msg7Seg.payloadlen = strlen(msg7Seg.payload);
-    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+    //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
+    //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+    //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
 
     //RFID POSITIVE
@@ -212,7 +212,7 @@ int main(int argc, char** argv)
     {
 
         //NFC enable state machine
-        if(recMQTTData.newData)
+        /*if(recMQTTData.newData)
         {
             if(recMQTTData.pressed && !strcmp(recMQTTData.key, "space"))
             {
@@ -225,7 +225,7 @@ int main(int argc, char** argv)
                 recMQTTData.newData = false;
                 //eTempNFCState == NFC_PROTOCOL_ACTIVATION;
             }
-        }
+        }*/
 
 
         //if(recMQTTData.nfcEnabled)
@@ -250,14 +250,14 @@ int main(int argc, char** argv)
 
                                 //turn 7 segment on to 0
                                 segmentWrite('b');
-                                msg7Seg.payload = "{\"sA\":0,\"sB\":0,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
-                                msg7Seg.payloadlen = strlen(msg7Seg.payload);
-                                rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+                               // msg7Seg.payload = "{\"sA\":0,\"sB\":0,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
+                                //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                                //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
 
-                                msgRFID.payload = "{\"type\":2,\"effect\":\"None\"}";
-                                msgRFID.payloadlen = strlen(msgRFID.payload);
-                                rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
+                                //msgRFID.payload = "{\"type\":2,\"effect\":\"None\"}";
+                                //msgRFID.payloadlen = strlen(msgRFID.payload);
+                                //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
                             }
                            T2T_stateMachine();
                         }
@@ -289,13 +289,13 @@ int main(int argc, char** argv)
 
                             //turn 7 segment on to 0
                             segmentWrite('a');
-                            msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":0,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
-                            msg7Seg.payloadlen = strlen(msg7Seg.payload);
-                            rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+                            //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":0,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
+                            //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                            //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
-                            msgRFID.payload = "{\"type\":5,\"effect\":\"None\"}";
-                            msgRFID.payloadlen = strlen(msgRFID.payload);;
-                            rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
+                            ///msgRFID.payload = "{\"type\":5,\"effect\":\"None\"}";
+                            //msgRFID.payloadlen = strlen(msgRFID.payload);;
+                            //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
                         }
                         T5T_stateMachine();
                     }
@@ -352,9 +352,9 @@ int main(int argc, char** argv)
 
                     //turn 7 segment on to 0
                     segmentWrite('0');
-                    msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
-                    msg7Seg.payloadlen = strlen(msg7Seg.payload);
-                    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+                   // msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
+                    //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                    //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
 
                     buttonDebounce = 1;
 
@@ -384,7 +384,7 @@ int main(int argc, char** argv)
         //transmitString("START MQTT \n\r");
 
 
-        rc = MQTTYield(&hMQTTClient, 10);
+       /* rc = MQTTYield(&hMQTTClient, 10);
         if (rc != 0) {
             transmitString(" MQTT failed to yield \n\r");
             LOOP_FOREVER();
@@ -471,7 +471,7 @@ int main(int argc, char** argv)
             publishID = 0;
         }
 
-
+*/
         //BUMP SENSOR CHECKS
         if(bumpSensorPressed(BUMP0))
             transmitString("Bump 0 Pressed!\n\r");
