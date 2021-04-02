@@ -14,8 +14,8 @@
 //
 // TRF79790A Hardware Configuration
 //
+//when this is changed, change nfc_spi.c init function
 #define SPI_MODULE_BASE_ADDR 	EUSCI_A3_MODULE
-
 
 #define SPI_PORT 				GPIO_PORT_P9
 #define SPI_CLK 				GPIO_PIN5

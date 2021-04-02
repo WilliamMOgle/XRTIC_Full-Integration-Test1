@@ -72,14 +72,9 @@ volatile uint16_t g_ui16BytesReceived = 0x00;
 
 int main(int argc, char** argv)
 {
-    //Init Timer
-    initSWTimer1();
-    //updateSW1WaitCycles(50000); //0.1ms per cycle
-    Init_Timer32_0(TIMER32_INIT_COUNT, CONTINUOUS);
 
-    //7 segment initialization of outputs
-    initializeOutputs();
-    initBumpSensors();
+    // Initialize MCU
+    MCU_init();
 
     bool tagReseted = true;
 
@@ -96,11 +91,18 @@ int main(int argc, char** argv)
     t_sNfcRWMode sRWMode;
     t_sNfcRWCommBitrate sRWBitrate;
 
-    // Initialize MCU
-    MCU_init();
 
     NFC_completeInit();
 
+
+    //Init Timer
+    initSWTimer1();
+    //updateSW1WaitCycles(50000); //0.1ms per cycle
+    Init_Timer32_0(TIMER32_INIT_COUNT, CONTINUOUS);
+
+    //7 segment initialization of outputs
+    initializeOutputs();
+    initBumpSensors();
 
     //START SETUP FOR ROVER AND MQTT
     MAP_WDT_A_holdTimer();
@@ -115,7 +117,7 @@ int main(int argc, char** argv)
     setWheelDirForward(&left_wheel_data);
     stopRover();
 
-    initMCU();
+    //initMCU();
     initUART();
 
     transmitString("Hey");
@@ -126,8 +128,8 @@ int main(int argc, char** argv)
     ASSERT_ON_ERROR(retVal);
 
     // Stop WDT and initialize the system-clock of the MCU
-    stopWDT();
-    initClk();
+    //stopWDT();
+    //initClk();
 
     // GPIO Setup for Pins 2.0-2.2
     //MAP_PMAP_configurePorts((const uint8_t *) port_mapping, PMAP_P2MAP, 1,
@@ -182,10 +184,6 @@ int main(int argc, char** argv)
     unsigned char readbuf[100];
 
     //setUpMQTT(retVal, buf, readbuf, rc);
-
-
-
-
 
     //message fore 7 segment
     MQTTMessage msg7Seg;

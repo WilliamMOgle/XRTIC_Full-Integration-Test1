@@ -90,7 +90,7 @@ void MCU_init(void)
              break;
     }
 
-    /* Initialize main clock to 24MHz */
+    /* Initialize main clock to 48MHz */
     CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_48);
 
     CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1 );

@@ -1,4 +1,6 @@
 eclipse.preferences.version=1
+encoding//Debug/Gripper/subdir_rules.mk=UTF-8
+encoding//Debug/Gripper/subdir_vars.mk=UTF-8
 encoding//Debug/board/subdir_rules.mk=UTF-8
 encoding//Debug/board/subdir_vars.mk=UTF-8
 encoding//Debug/bump/subdir_rules.mk=UTF-8
@@ -11,6 +13,8 @@ encoding//Debug/driver7Seg/subdir_rules.mk=UTF-8
 encoding//Debug/driver7Seg/subdir_vars.mk=UTF-8
 encoding//Debug/headers/subdir_rules.mk=UTF-8
 encoding//Debug/headers/subdir_vars.mk=UTF-8
+encoding//Debug/ir/subdir_rules.mk=UTF-8
+encoding//Debug/ir/subdir_vars.mk=UTF-8
 encoding//Debug/json/subdir_rules.mk=UTF-8
 encoding//Debug/json/subdir_vars.mk=UTF-8
 encoding//Debug/makefile=UTF-8
