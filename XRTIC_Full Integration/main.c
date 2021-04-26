@@ -144,12 +144,24 @@ int main(int argc, char** argv)
 
     //ROVER addition
     //rslk rover init
-    initRSLKRover(SYS_CLK);
+    /*initRSLKRover(SYS_CLK);
     initRSLKTimer32(RSLK_TIMER32_BASE);
     enableWheel(&right_wheel_data);
     setWheelDirForward(&right_wheel_data);
     enableWheel(&left_wheel_data);
+    setWheelDirForward(&left_wheel_data);*/
+
+    //rslk rover init
+    initRSLKRover(SYS_CLK);
+    initRSLKTimer32(TIMER32_1_BASE);
+    enableWheel(&right_wheel_data);
+    setWheelDirForward(&right_wheel_data);
+    enableWheel(&left_wheel_data);
     setWheelDirForward(&left_wheel_data);
+    enableWheelCompensator(&left_wheel_data);
+    enableWheelCompensator(&right_wheel_data);
+    speed_state = SPEED_HOLD;
+    speed = 100;
     stopRover();
 
     //initMCU();
@@ -259,12 +271,11 @@ int main(int argc, char** argv)
 
     //END IR INIT
 
-    //setUpMQTT(retVal, buf, readbuf, rc);
+    setUpMQTT(retVal, buf, readbuf, rc);
 
     //message fore 7 segment
     MQTTMessage msg7Seg;
     MQTTMessageInit(&msg7Seg);
-
 
     //turn 7 segment on to 0
     segmentWrite('0');
@@ -288,9 +299,9 @@ int main(int argc, char** argv)
      Init_Timer32_0(TIMER32_INIT_COUNT, CONTINUOUS);
      initSWTimer1();
      initSWTimer2();
-     updateSW1WaitCycles(5000);
+     updateSW1WaitCycles(30000);
 
-     servo180InitArgs(&servoSettings,SYS_CLK,145,80,GPIO_PORT_P2,GPIO_PIN4);
+     servo180InitArgs(&servoSettings,SYS_CLK,140,80,GPIO_PORT_P8,GPIO_PIN2);
      closeServo(&servoSettings);
 
      //END GRIPPER INIT
@@ -303,6 +314,10 @@ int main(int argc, char** argv)
     bool tag_present = false;
     while(1)
     {
+        //Rover updates
+        checkEndCond();
+        updateRoverState();
+        compensator();
 
 
         //SERVO DEMO
@@ -314,7 +329,8 @@ int main(int argc, char** argv)
                     //Everything else in this if-statement
                     //for a demonstration
 
-                    toggleOpenClose(&servoSettings);
+                    //toggleOpenClose(&servoSettings);
+                    //openServo(&servoSettings);
 
                     /*if(!countDir)
                         degree -= 5;
@@ -509,65 +525,139 @@ int main(int argc, char** argv)
         //transmitString("START MQTT \n\r");
 
 
-       /* rc = MQTTYield(&hMQTTClient, 10);
+        rc = MQTTYield(&hMQTTClient, 10);
         if (rc != 0) {
             transmitString(" MQTT failed to yield \n\r");
             LOOP_FOREVER();
         }
 
-        //ROVER STATE MACHINE - BEGIN
+        //GRIPPER STATE MACHINE
         if(recMQTTData.newData)
         {
             if(recMQTTData.pressed)
             {
-                if(!strcmp(recMQTTData.key,"up"))
+                if(!strcmp(recMQTTData.key,"w"))
                 {
-                    moveForwardIndefinitely(200);
+                    openServo(&servoSettings);
                     recMQTTData.newData = false;
+                }
+                else if(!strcmp(recMQTTData.key,"s"))
+                {
+                    closeServo(&servoSettings);
+                    recMQTTData.newData = false;
+                }
+
+            }
+        }
+
+        //ROVER STATE MACHINE - BEGIN
+
+
+        //Speed setting
+
+
+        transmitString("Speed state: ");
+        switch(speed_state)
+        {
+            case SPEED_INCREASE: speed += 10; transmitString("SPEED_INCREASE\n\r");break;
+            case SPEED_DECREASE: speed -= 10; transmitString("SPEED_DECREASE\n\r");break;
+            case SPEED_HOLD: transmitString("SPEED_HOLD\n\r");break;
+            default: break;
+        }
+        transmitInt(speed);transmitNewLine();
+
+        //motor contorl
+        //uint16_t speed = ROVER_SPEED;
+        if(recMQTTData.newData)
+        {
+            if(recMQTTData.pressed)
+            {
+                //transmitString("Speed: ");
+                if(!strcmp(recMQTTData.key,"a"))
+                {
+                    //transmitInt(speed);transmitNewLine();
+                    speed_state = SPEED_INCREASE;
+                    //recMQTTData.newData = false;
+                }
+                else if(!strcmp(recMQTTData.key,"d"))
+                {
+                    //transmitInt(speed);transmitNewLine();
+                    speed_state = SPEED_DECREASE;
+                    //recMQTTData.newData = false;
+                }
+                else if(!strcmp(recMQTTData.key,"up"))
+                {
+                    moveForwardIndefinitelyComp(speed);
+                    recMQTTData.newData = false;
+                    segmentWrite('1');
                 }
                 else if(!strcmp(recMQTTData.key,"down"))
                 {
-                    moveBackwardIndefinitely(200);
+                    moveBackwardIndefinitelyComp(speed);
                     recMQTTData.newData = false;
+                    segmentWrite('2');
                 }
                 else if(!strcmp(recMQTTData.key,"right"))
                 {
-                    rotateRightIndefinitely(200);
+                    rotateRightIndefinitelyComp(speed/8);
                     recMQTTData.newData = false;
+                    segmentWrite('3');
                 }
                 else if(!strcmp(recMQTTData.key,"left"))
                 {
-                    rotateLeftIndefinitely(200);
+                    rotateLeftIndefinitelyComp(speed/8);
                     recMQTTData.newData = false;
+                    segmentWrite('4');
                 }
             }
             else //released
             {
+                //rover state release logic
                 switch(rover_state)
                 {
                 case MOVING_FORWARD:    if(!strcmp(recMQTTData.key,"up"))
                                         {
                                             stopRover();
-                                            recMQTTData.newData = false;
+                                            //recMQTTData.newData = false;
                                         }break;
                 case MOVING_BACKWARD:   if(!strcmp(recMQTTData.key,"down"))
                                         {
                                             stopRover();
-                                            recMQTTData.newData = false;
+                                            //recMQTTData.newData = false;
                                         }break;
                 case ROTATING_RIGHT:    if(!strcmp(recMQTTData.key,"right"))
                                         {
                                             stopRover();
-                                            recMQTTData.newData = false;
+                                            //recMQTTData.newData = false;
                                         }break;
                 case ROTATING_LEFT:     if(!strcmp(recMQTTData.key,"left"))
                                         {
                                             stopRover();
-                                            recMQTTData.newData = false;
+                                            //recMQTTData.newData = false;
                                         }break;
-                default: stopRover(); break;
+                default:
+                    stopRover();
+                    break;
                 }
+
+                //speed state release logics
+                switch(speed_state)
+                {
+                case SPEED_DECREASE:    if(!strcmp(recMQTTData.key,"d"))
+                                        {
+                                            speed_state = SPEED_HOLD;
+                                        }break;
+                case SPEED_INCREASE:    if(!strcmp(recMQTTData.key,"a"))
+                                        {
+                                            speed_state = SPEED_HOLD;
+                                        }break;
+                default: speed_state = SPEED_HOLD; break;
+                }
+
+                //recMQTTData.newData = false;
             }
+            segmentWrite('F');
+            recMQTTData.newData = false;
         }
 
         //END
@@ -596,7 +686,7 @@ int main(int argc, char** argv)
             publishID = 0;
         }
 
-*/
+
         //BUMP SENSOR CHECKS
         /*if(bumpSensorPressed(BUMP0))
             transmitString("Bump 0 Pressed!\n\r");

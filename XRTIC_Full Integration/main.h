@@ -53,8 +53,24 @@
 
 //ROVER DEFINES
 #define SYS_CLK 48000000
+#define ROVER_SPEED 2500
 
 
+typedef enum
+{
+    OPENING,
+    CLOSING,
+    HOLD
+}Gripper_State;
 
+typedef enum
+{
+    SPEED_INCREASE,
+    SPEED_DECREASE,
+    SPEED_HOLD
+}Speed_Set;
+
+Speed_Set speed_state;
+uint16_t speed;
 
 #endif /* MAIN_H_ */

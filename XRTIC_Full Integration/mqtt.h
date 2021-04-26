@@ -22,10 +22,11 @@
  */
 
 //Willi's Information
+/*
 #define SSID_NAME       "SingleDigits"
 #define PASSKEY         ""
 #define SEC_TYPE        SL_SEC_TYPE_OPEN
-
+*/
 
 /*
  * Matt's Information
@@ -38,10 +39,10 @@
  * Amar's Information
  */
 
-/*#define SSID_NAME       "VeeCastFox178"       // Access point name to connect to.
+#define SSID_NAME       "VeeCastFox178"       // Access point name to connect to.
 #define PASSKEY         "VeeLearCar256!%"              //Password in case of secure AP
-*/
-//#define SEC_TYPE        SL_SEC_TYPE_WPA_WPA2     /* Security type of the Access piont */
+
+#define SEC_TYPE        SL_SEC_TYPE_WPA_WPA2     /* Security type of the Access piont */
 #define PASSKEY_LEN     pal_Strlen(PASSKEY)      /* Password length in case of secure AP */
 
 /*
@@ -49,8 +50,8 @@
  */
 #define MQTT_BROKER_SERVER  "s1.airmqtt.com"
 #define MQTT_BROKER_PORT 10004
-#define MQTT_BROKER_USERNAME "a77buelx"
-#define MQTT_BROKER_PASSWORD "4pixgqnd"
+#define MQTT_BROKER_USERNAME "ho57urj5"
+#define MQTT_BROKER_PASSWORD "h6zte2nu"
 
 #define SUBSCRIBE_TOPIC "XRTIC20/Commands/Rover"
 #define PUBLISH_TOPIC "/msp/cc3100/fromLP"

@@ -20,7 +20,8 @@ void initMCU();
 void transmitChar(uint8_t);
 void transmitString(uint8_t*);
 void transmitInt(int);
-char transmitIntHelper(int i);
+void transmitNewLine();
+void transmitIntHex(int);
 
 
 

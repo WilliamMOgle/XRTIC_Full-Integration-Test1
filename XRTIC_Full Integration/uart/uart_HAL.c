@@ -58,6 +58,13 @@ void transmitChar(uint8_t c)
 {
     UART_transmitData(UART_BASE, c);
 }
+
+void transmitNewLine()
+{
+    UART_transmitData(UART_BASE, '\n');
+    UART_transmitData(UART_BASE, '\r');
+}
+
 void transmitString(uint8_t* s)
 {
     uint8_t x = 0;
@@ -66,6 +73,7 @@ void transmitString(uint8_t* s)
         UART_transmitData(UART_BASE, s[x]);
         x++;
     }
+
 }
 
 void transmitInt(int i)
@@ -97,5 +105,10 @@ void transmitInt(int i)
         tempC = digit + '0';
         transmitChar(tempC);
     }
+
+}
+
+void transmitIntHex(int i)
+{
 
 }

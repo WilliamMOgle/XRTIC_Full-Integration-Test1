@@ -8,10 +8,6 @@
 
 #include <RSLK_Wheel.h>
 
-
-//const Pin RSLK_right_wheel_pin = {GPIO_PORT_P2, GPIO_PIN6};
-//const Pin RSLK_left_wheel_pin = {GPIO_PORT_P2, GPIO_PIN7};
-
 void initRightRSLKWheel(RSLK_Wheel *wheel_data,uint32_t _sys_clk, uint32_t _t32_base_cnt)
 {
 
@@ -23,6 +19,7 @@ void initRightRSLKWheel(RSLK_Wheel *wheel_data,uint32_t _sys_clk, uint32_t _t32_
     uint16_t int_port = RSLK_RIGHT_INT_PORT;
     uint8_t *int_flg_reg = RSLK_RIGHT_INT_FLG_REG;
     uint8_t int_flg_bit = RSLK_RIGHT_INT_FLG_BIT;
+    bool comp_en = false;
 
     initWheel(wheel_data, _sys_clk,   output_pin,
                                       dir_pin,
@@ -32,7 +29,8 @@ void initRightRSLKWheel(RSLK_Wheel *wheel_data,uint32_t _sys_clk, uint32_t _t32_
                                       int_port,
                                       int_flg_reg,
                                       int_flg_bit,
-                                      _t32_base_cnt);
+                                      _t32_base_cnt,
+                                      comp_en);
 
 
 }
@@ -47,6 +45,7 @@ void initLeftRSLKWheel(RSLK_Wheel *wheel_data,uint32_t _sys_clk, uint32_t _t32_b
     uint16_t int_port = RSLK_LEFT_INT_PORT;
     uint8_t *int_flg_reg = RSLK_LEFT_INT_FLG_REG;
     uint8_t int_flg_bit = RSLK_LEFT_INT_FLG_BIT;
+    bool comp_en = false;
 
     initWheel(wheel_data, _sys_clk,   output_pin,
                                       dir_pin,
@@ -56,14 +55,15 @@ void initLeftRSLKWheel(RSLK_Wheel *wheel_data,uint32_t _sys_clk, uint32_t _t32_b
                                       int_port,
                                       int_flg_reg,
                                       int_flg_bit,
-                                      _t32_base_cnt);
+                                      _t32_base_cnt,
+                                      comp_en);
 
 
 }
 
 void initWheel(RSLK_Wheel *wheel_data, uint32_t _sys_clk, Pin output_pin, Pin dir_pin, Pin slp_pin,
                Pin enca_pin, Pin encb_pin, uint16_t int_port, volatile uint8_t *int_flg_reg, uint8_t int_flg_bit,
-               uint32_t _t32_base_cnt)
+               uint32_t _t32_base_cnt, bool comp_en)
 {
     //User determined data
     wheel_data->sys_clk = _sys_clk;
@@ -82,6 +82,8 @@ void initWheel(RSLK_Wheel *wheel_data, uint32_t _sys_clk, Pin output_pin, Pin di
     wheel_data->wheel_int_flg_reg = int_flg_reg;
     wheel_data->int_flg_bit = int_flg_bit;
     wheel_data->t32_base_count = _t32_base_cnt;
+    wheel_data->enable_compensator = comp_en;
+    wheel_data->abnormal_wheel_stop = false;
 
     //Internal Data
     wheel_data->enc_period = wheel_data->sys_clk;
@@ -92,6 +94,11 @@ void initWheel(RSLK_Wheel *wheel_data, uint32_t _sys_clk, Pin output_pin, Pin di
     wheel_data->wheel_rotation_tracker.ticks = 0;
     wheel_data->wheel_rotation_tracker.targetTicks = 0;
     wheel_data->stop_count_thres =  wheel_data->sys_clk / ENC_TO_RPM_CONST / STOPPED_RPM_DEFINE / wheel_data->t32_base_count ;
+    wheel_data->compensator_count = 0;
+
+    uint8_t i;
+    for(i = 0;i<NUM_STATE_VARS;i++)
+        wheel_data->p[i] = 0;
 
     wheel_data->pwm_settings.sys_clk = _sys_clk;
     wheel_data->pwm_settings.freq = WHEEL_PWM_FREQ;
@@ -149,8 +156,6 @@ bool encBInterruptCheck(RSLK_Wheel *wheel_data)
 
 void setWheelDutyCycle(RSLK_Wheel *wheel_data, double duty_cycle)
 {
-    wheel_data->pwm_settings.dutyCycle = duty_cycle;
-    //setPWM(&wheel_data->pwm_settings);
     updateDutyCycle(duty_cycle, &wheel_data->pwm_settings);
 }
 
@@ -168,16 +173,34 @@ void updateWheelState(RSLK_Wheel *wheel_data)
     }
 }
 
-
-void setFowardWheelSpeedAsPercent(RSLK_Wheel *wheel_data, double percent)
-{
-
-}
-
 uint32_t calcCurrentRPM(RSLK_Wheel *wheel_data)
 {
     uint32_t rpm = wheel_data->sys_clk / wheel_data->enc_period * UNIT_FACTOR / ENC_TO_RPM_CONST / wheel_data->t32_base_count;
     wheel_data->meas_rpm = rpm;
     return  wheel_data->meas_rpm;
+}
+
+void enableWheelCompensator(RSLK_Wheel *wheel_data)
+{
+    wheel_data->enable_compensator = true;
+}
+
+void disableWheelCompensator(RSLK_Wheel *wheel_data)
+{
+    wheel_data->enable_compensator = false;
+}
+
+void clearStateVariables(RSLK_Wheel *wheel_data)
+{
+    uint8_t x;
+    for(x = 0;x<NUM_STATE_VARS;x++)
+    {
+        wheel_data->p[x] = 0;
+    }
+}
+
+bool wheelIsInAbnormalWheelStop(RSLK_Wheel *wheel_data)
+{
+    return wheel_data->abnormal_wheel_stop;
 }
 

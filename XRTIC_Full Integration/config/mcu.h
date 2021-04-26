@@ -19,6 +19,8 @@
 
 
 // ******** Definitions ******************************************************//
+#define MCU_TA      TIMER_A2_BASE
+#define MCU_TA_INT  INT_TA2_0
 
 #define MHZ									1000000
 #define MCLK_FREQ							(24*MHZ)

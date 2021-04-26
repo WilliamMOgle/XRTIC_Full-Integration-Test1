@@ -41,7 +41,7 @@ Timer_A_UpModeConfig upConfig =
         TIMER_A_DO_CLEAR                        // Clear value
 };
 
-void timer_a_0_isr(void);
+void timer_a_isr(void);
 
 /**
  * @brief <b>Function Name</b>: MCU_init
@@ -98,7 +98,7 @@ void MCU_init(void)
     /* Initialize SMCLK to 12MHz */
     CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_4 );
 
-    Timer_A_registerInterrupt(TIMER_A2_BASE,TIMER_A_CCR0_INTERRUPT,timer_a_0_isr);
+    Timer_A_registerInterrupt(MCU_TA,TIMER_A_CCR0_INTERRUPT,timer_a_isr);
 
     Interrupt_enableMaster();
 }
@@ -147,11 +147,11 @@ void MCU_delayMillisecond(uint32_t n_ms)
     upConfig.timerPeriod = TIMER_PERIOD_1_MS * n_ms;
 
     /* Configuring Timer_A1 for Up Mode */
-    Timer_A_configureUpMode(TIMER_A2_BASE, &upConfig);
+    Timer_A_configureUpMode(MCU_TA, &upConfig);
 
-    Interrupt_enableInterrupt(INT_TA2_0);
+    Interrupt_enableInterrupt(MCU_TA_INT);
 
-    Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
+    Timer_A_startCounter(MCU_TA, TIMER_A_UP_MODE);
 
     // Wait until Flag is set
     while(*g_timeout_ptr != 0x01)
@@ -190,11 +190,11 @@ void MCU_delayMicrosecond(uint32_t n_us)
     upConfig.timerPeriod = TIMER_PERIOD_1_US * n_us;
 
     /* Configuring Timer_A1 for Up Mode */
-    Timer_A_configureUpMode(TIMER_A2_BASE, &upConfig);
+    Timer_A_configureUpMode(MCU_TA, &upConfig);
 
-    Interrupt_enableInterrupt(INT_TA2_0);
+    Interrupt_enableInterrupt(MCU_TA_INT);
 
-    Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
+    Timer_A_startCounter(MCU_TA, TIMER_A_UP_MODE);
 
     // Wait until Flag is set
     while(*g_timeout_ptr != 0x01)
@@ -275,28 +275,28 @@ void MCU_timerInit(uint16_t timeout_ms, uint8_t * timeout_flag)
         upConfig.clockSourceDivider = TIMER_A_CLOCKSOURCE_DIVIDER_32;
         upConfig.timerPeriod = TIMER_PERIOD_1_MS * timeout_ms;
 
-        Timer_A_clearInterruptFlag(TIMER_A2_BASE);
+        Timer_A_clearInterruptFlag(MCU_TA);
 
         /* Configuring Timer_A1 for Up Mode */
-        Timer_A_configureUpMode(TIMER_A2_BASE, &upConfig);
+        Timer_A_configureUpMode(MCU_TA, &upConfig);
 
-        Interrupt_enableInterrupt(INT_TA2_0);
+        Interrupt_enableInterrupt(MCU_TA_INT);
 
-        Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
+        Timer_A_startCounter(MCU_TA, TIMER_A_UP_MODE);
     }
 
 }
 
 void MCU_timerDisable(void)
 {
-    Timer_A_disableInterrupt(INT_TA2_0);
+    Timer_A_disableInterrupt(MCU_TA_INT);
     TA2CTL &= ~0x30;
-    Timer_A_stopTimer(INT_TA2_0);
-    Timer_A_clearTimer(INT_TA2_0);
+    Timer_A_stopTimer(MCU_TA_INT);
+    Timer_A_clearTimer(MCU_TA_INT);
 }
 
 
-void timer_a_0_isr(void)
+void timer_a_isr(void)
 {
     P3OUT ^= BIT2;
     if(g_ui8TimerResolution == TIMER_COUNT_MS)
@@ -306,18 +306,18 @@ void timer_a_0_isr(void)
             g_ui32RemainingTime = g_ui32RemainingTime - 174;
             upConfig.timerPeriod = TIMER_PERIOD_1_MS * 174;
 
-            Timer_A_configureUpMode(TIMER_A2_BASE, &upConfig);
+            Timer_A_configureUpMode(MCU_TA, &upConfig);
 
-            Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
+            Timer_A_startCounter(MCU_TA, TIMER_A_UP_MODE);
         }
         else if(g_ui32RemainingTime > 0)
         {
             upConfig.timerPeriod = TIMER_PERIOD_1_MS * g_ui32RemainingTime;
             g_ui32RemainingTime = 0x00;
 
-            Timer_A_configureUpMode(TIMER_A2_BASE, &upConfig);
+            Timer_A_configureUpMode(MCU_TA, &upConfig);
 
-            Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
+            Timer_A_startCounter(MCU_TA, TIMER_A_UP_MODE);
         }
         else
         {
@@ -331,25 +331,25 @@ void timer_a_0_isr(void)
             g_ui32RemainingTime = g_ui32RemainingTime - 5400;
             upConfig.timerPeriod = TIMER_PERIOD_1_US * 5400;
 
-            Timer_A_configureUpMode(TIMER_A2_BASE, &upConfig);
+            Timer_A_configureUpMode(MCU_TA, &upConfig);
 
-            Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
+            Timer_A_startCounter(MCU_TA, TIMER_A_UP_MODE);
         }
         else if(g_ui32RemainingTime > 0)
         {
             upConfig.timerPeriod = TIMER_PERIOD_1_US * g_ui32RemainingTime;
             g_ui32RemainingTime = 0x00;
 
-            Timer_A_configureUpMode(TIMER_A2_BASE, &upConfig);
+            Timer_A_configureUpMode(MCU_TA, &upConfig);
 
-            Timer_A_startCounter(TIMER_A2_BASE, TIMER_A_UP_MODE);
+            Timer_A_startCounter(MCU_TA, TIMER_A_UP_MODE);
         }
         else
         {
             *g_timeout_ptr = 0x01;
         }
     }
-    Timer_A_clearCaptureCompareInterrupt(TIMER_A2_BASE,
+    Timer_A_clearCaptureCompareInterrupt(MCU_TA,
             TIMER_A_CAPTURECOMPARE_REGISTER_0);
 }
 

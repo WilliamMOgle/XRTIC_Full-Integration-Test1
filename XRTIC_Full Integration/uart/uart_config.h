@@ -12,7 +12,6 @@
 #define SYSTEM_CLOCK_FREQ       48000000
 #define CS_DCO_FREQUENCY        CS_DCO_FREQUENCY_48
 
-//9600 BAUD RATE
 #define CLK_SRC                 EUSCI_A_UART_CLOCKSOURCE_SMCLK
 #define UART_PRESCALE           6//78//312
 #define FIRST_MOD_REG           8//2//8
