@@ -319,35 +319,47 @@ int main(int argc, char** argv)
         updateRoverState();
         compensator();
 
-
-        //SERVO DEMO
-
+        //NON-BLOCKING TELEMETRY SEND CHECK
         if(SW1TimerRollover())
-                {
-                    //Comment either the toggle function
-                    //OR
-                    //Everything else in this if-statement
-                    //for a demonstration
+        {
+            //TRANSMIT ROVER
 
-                    //toggleOpenClose(&servoSettings);
-                    //openServo(&servoSettings);
+            //TRANSMIT BUMP
 
-                    /*if(!countDir)
-                        degree -= 5;
-                    else
-                        degree += 5;
-                    if(degree >= 145 || degree <= 80)
-                    {
-                        countDir = !countDir;
-                    }
-                    moveServoToDegree(degree, &servoSettings);*/
+            //TRANSMIT IR
 
-                }
+            //TRANSMIT RFID
 
-        //END SERVO DEMO
+            //TRANSMIT ROBONAV ON
 
-        //NFC enable state machine
-        /*if(recMQTTData.newData)
+
+
+
+
+            //SERVO DEMO
+            //Comment either the toggle function
+            //OR
+            //Everything else in this if-statement
+            //for a demonstration
+
+            //toggleOpenClose(&servoSettings);
+            //openServo(&servoSettings);
+
+            /*if(!countDir)
+                degree -= 5;
+            else
+                degree += 5;
+            if(degree >= 145 || degree <= 80)
+            {
+                countDir = !countDir;
+            }
+            moveServoToDegree(degree, &servoSettings);*/
+            //END SERVO DEMO
+        }
+        //END NON-BLOCKING TELEMETRY SEND CHECK
+
+        //NFC ENABLE STATE MACHINE
+        if(recMQTTData.newData)
         {
             if(recMQTTData.pressed && !strcmp(recMQTTData.key, "space"))
             {
@@ -360,11 +372,12 @@ int main(int argc, char** argv)
                 recMQTTData.newData = false;
                 //eTempNFCState == NFC_PROTOCOL_ACTIVATION;
             }
-        }*/
+        }
+        //END NFC ENABLE STATE MACHINE
 
 
-        //if(recMQTTData.nfcEnabled)
-        //{
+        if(recMQTTData.nfcEnabled)
+        {
             eTempNFCState = NFC_run();
 
             if(eTempNFCState == NFC_DATA_EXCHANGE_PROTOCOL)
@@ -520,7 +533,7 @@ int main(int argc, char** argv)
             //SW_Timer_1.elapsedCycles = 0;
                Serial_processCommand();
 
-
+        }
 
         //transmitString("START MQTT \n\r");
 
@@ -551,20 +564,16 @@ int main(int argc, char** argv)
         }
 
         //ROVER STATE MACHINE - BEGIN
-
-
         //Speed setting
-
-
-        transmitString("Speed state: ");
+        //transmitString("Speed state: ");
         switch(speed_state)
         {
-            case SPEED_INCREASE: speed += 10; transmitString("SPEED_INCREASE\n\r");break;
-            case SPEED_DECREASE: speed -= 10; transmitString("SPEED_DECREASE\n\r");break;
-            case SPEED_HOLD: transmitString("SPEED_HOLD\n\r");break;
+            case SPEED_INCREASE: speed += 10; /*transmitString("SPEED_INCREASE\n\r");*/break;
+            case SPEED_DECREASE: speed -= 10; /*transmitString("SPEED_DECREASE\n\r");*/break;
+            case SPEED_HOLD: /*transmitString("SPEED_HOLD\n\r");*/break;
             default: break;
         }
-        transmitInt(speed);transmitNewLine();
+        //transmitInt(speed);transmitNewLine();
 
         //motor contorl
         //uint16_t speed = ROVER_SPEED;
