@@ -7,6 +7,192 @@
 
 #include "main.h"
 
+
+void roverInit()
+{
+    //rslk rover init
+    initRSLKRover(SYS_CLK);
+    initRSLKTimer32(TIMER32_1_BASE);
+    enableWheel(&right_wheel_data);
+    setWheelDirForward(&right_wheel_data);
+    enableWheel(&left_wheel_data);
+    setWheelDirForward(&left_wheel_data);
+    enableWheelCompensator(&left_wheel_data);
+    enableWheelCompensator(&right_wheel_data);
+    speed_state = SPEED_HOLD;
+    speed = 100;
+}
+
+void nfc_tag_detect(bool * tag_present, uint8_t * count)
+{
+    transmitString("In NFC");transmitNewLine();
+    eTempNFCState = NFC_run();
+
+    if(eTempNFCState == NFC_DATA_EXCHANGE_PROTOCOL)
+    {
+
+        if(count != 2)
+        {
+            count = 2;
+        }
+
+        if(NFC_RW_getModeStatus(&sRWMode,&sRWBitrate))
+        {
+            NFC_RW_LED_POUT |= NFC_RW_LED_BIT;
+
+            if( sRWMode.bits.bNfcA == 1)
+            {
+                if(NFC_A_getSAK() == 0x00)
+                {
+                    // T2T Tag State Machine
+                    if(tag_present == false)
+                    {
+                        turnOn_LaunchpadLED2_green();
+                        transmitString("Type 2 Tag Detect\n\r");
+                        tag_present = true;
+                        //turn 7 segment on to 0
+                        segmentWrite('b');
+                       // msg7Seg.payload = "{\"sA\":0,\"sB\":0,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
+                        //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                        //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+
+
+                        //msgRFID.payload = "{\"type\":2,\"effect\":\"None\"}";
+                        //msgRFID.payloadlen = strlen(msgRFID.payload);
+                        //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
+                    }
+                    T2T_stateMachine();
+                }
+                else if(NFC_A_getSAK() & 0x20)
+                {
+                    // T4T Tag State Machine
+                    T4T_stateMachine();
+                }
+            }
+            else if(sRWMode.bits.bNfcB == 1)
+            {
+                if(NFC_B_isISOCompliant())
+                {
+                    // T4T Tag State Machine
+                    T4T_stateMachine();
+                }
+            }
+            else if(sRWMode.bits.bNfcF == 1)
+            {
+                // T3T Tag State Machine
+                T3T_stateMachine();
+            }
+            else if(sRWMode.bits.bISO15693 == 1)
+            {
+                // T5T Tag State Machine
+                if(tag_present == false)
+                {
+                    turnOn_LaunchpadLED2_blue();
+                    transmitString("Type 5 Tag Detect\n\r");
+                    //turn 7 segment on to 0
+                    segmentWrite('a');
+                    tag_present = true;
+                    //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":0,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
+                    //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+                    //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+
+                    ///msgRFID.payload = "{\"type\":5,\"effect\":\"None\"}";
+                    //msgRFID.payloadlen = strlen(msgRFID.payload);;
+                    //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgRFID);
+                }
+            }
+        }
+        else if(NFC_P2P_getModeStatus(&sP2PMode,&sP2PBitrate))
+        {
+
+        }
+        else if(NFC_CE_getModeStatus(&sCEMode))
+        {
+
+        }
+    }
+    else
+    {
+        // Clear LEDs (RX & TX)
+        if(count != 0)
+            count--;
+
+        if(count == 0)
+        {
+           turnOff_LaunchpadLED1();
+           turnOff_LaunchpadLED2_red();//LaunchpadLED2_green
+           turnOff_LaunchpadLED2_green();
+           turnOff_LaunchpadLED2_blue();
+
+           NFC_RW_LED_POUT &= ~NFC_RW_LED_BIT;
+           NFC_P2P_LED_POUT &= ~NFC_P2P_LED_BIT;
+           NFC_CE_LED_POUT &= ~NFC_CE_LED_BIT;
+           tag_present = false;
+        }
+
+    }
+
+    // Update Current State if it has changed.
+    if(eCurrentNFCState != eTempNFCState)
+    {
+        __no_operation();
+
+        if(eCurrentNFCState != NFC_TARGET_WAIT_FOR_ACTIVATION
+            && eCurrentNFCState != NFC_STATE_IDLE
+            && (eTempNFCState == NFC_PROTOCOL_ACTIVATION
+                || eTempNFCState == NFC_DISABLED))
+        {
+            eCurrentNFCState = eTempNFCState;
+
+
+            // Initialize the RW T2T, T3T, T4T and T5 state machines
+            T2T_init(g_ui8TxBuffer,256);
+            T5T_init(g_ui8TxBuffer,256);
+            //turn 7 segment on to 0
+            segmentWrite('0');
+           // msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
+            //msg7Seg.payloadlen = strlen(msg7Seg.payload);
+            //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
+
+            //buttonDebounce = 1;
+        }
+        else
+        {
+            eCurrentNFCState = eTempNFCState;
+        }
+
+    }
+
+    // Check if any packets have been received from the NFC host.
+    if(g_ui16BytesReceived > 0)
+    {
+        Serial_processCommand();
+    }
+
+    //transmitString("END NFC \n\r");
+    //transmitInt(SW_Timer_1.elapsedCycles);
+    //transmitString("\n\r");
+    //SW_Timer_1.elapsedCycles = 0;
+       Serial_processCommand();
+
+}
+
+void irInit()
+{
+    //SENSOR SET UP
+
+    SysTick->LOAD = 0x00FFFFFF;           // maximum reload value
+    SysTick->CTRL = 0x00000005;           // enable SysTick with no interrupts
+    I2CB1_Init(30); // baud rate = 12MHz/30=400kHz
+    OPT3101_Init();
+    OPT3101_Setup();
+    OPT3101_CalibrateInternalCrosstalk();
+    OPT3101_ArmInterrupts(&TxChannel, Distances, Amplitudes);
+    StartTime = SysTick->VAL;
+    OPT3101_StartMeasurement();
+    //END IR INIT
+}
+
 void roboNav()
 {
     transmitString("in RoboNav\n\r");

@@ -17,6 +17,13 @@
 uint8_t g_ui8SerialBuffer[265];
 
 
+tNfcState eTempNFCState;
+tNfcState eCurrentNFCState;
+t_sNfcCEMode sCEMode;
+t_sNfcP2PMode sP2PMode;
+t_sNfcP2PCommBitrate sP2PBitrate;
+t_sNfcRWMode sRWMode;
+t_sNfcRWCommBitrate sRWBitrate;
 
 bool g_bEnableAutoSDD;
 bool g_bExtAmplifier;

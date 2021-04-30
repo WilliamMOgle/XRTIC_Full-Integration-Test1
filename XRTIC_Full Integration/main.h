@@ -47,12 +47,15 @@
 
 //---------DEFINES----------
 //system enables
-#define NFC_ENABLE false
-#define ROVER_ENABLE false
-#define BUMP_ENABLE false
-#define ROBONAV_ENABLE false
-#define GRIPPER_ENABLE false
-#define MQTT_ENABLE false
+#define NFC_ENABLE 1
+#define ROVER_ENABLE 0
+#define BUMP_ENABLE 0
+#define IR_ENABLE 0
+#define ROBONAV_ENABLE 0
+#define GRIPPER_ENABLE 0
+#define MQTT_ENABLE 0
+#define SEG7_ENABLE 0
+#define TELEM_ENABLE 0
 
 //ROVER DEFINES
 #define SYS_CLK 48000000
@@ -92,8 +95,15 @@ uint32_t Amplitudes[3];
 uint32_t TxChannel;
 uint32_t StartTime;
 uint32_t TimeToConvert; // in msec
+uint16_t g_ui16BytesReceived;// Number of bytes received from the host
+//nfc
+
+
 
 //FUNCTION PROTOTYPES
 void roboNav();
+void roverInit();
+void irInit();
+void nfc_tag_detect(bool*, uint8_t*);
 
 #endif /* MAIN_H_ */
