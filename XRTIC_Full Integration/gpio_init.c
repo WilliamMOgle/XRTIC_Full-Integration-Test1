@@ -14,6 +14,10 @@ void initialize_LaunchpadLEDs()
     initialize_LaunchpadLED2_red();
     initialize_LaunchpadLED2_blue();
     initialize_LaunchpadLED2_green();
+    turnOff_LaunchpadLED1();
+    turnOff_LaunchpadLED2_red();
+    turnOff_LaunchpadLED2_blue();
+    turnOff_LaunchpadLED2_green();
 }
 
 void initialize_LaunchpadLED1()
@@ -82,4 +86,12 @@ void turnOff_LaunchpadLED2_blue()
 void toggle_LaunchpadLED2_blue()
 {
     GPIO_toggleOutputOnPin(GPIO_PORT_P2, GPIO_PIN2);
+}
+void button_two_interrupt_init()
+{
+    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN4);
+    GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN4);
+    GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN4);
+    GPIO_interruptEdgeSelect(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN4, GPIO_HIGH_TO_LOW_TRANSITION);
+    GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN4);
 }

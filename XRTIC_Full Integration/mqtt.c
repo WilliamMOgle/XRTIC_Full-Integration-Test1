@@ -10,6 +10,7 @@
 unsigned char macAddressLen = SL_MAC_ADDR_LEN;
 _u32  g_Status = 0;
 
+
 void MQTTMessageInit(MQTTMessage *msg)
 {
     msg->dup = 0;
@@ -36,6 +37,25 @@ void setUpMQTT(_i32 retVal, unsigned char *buf, unsigned char *readbuf, int rc)
      * Note that all profiles and persistent settings that were done on the
      * device will be lost
      */
+
+    /* TimerA UpMode Configuration Parameter */
+    const Timer_A_UpModeConfig upConfigMQTT =
+    {
+            TIMER_A_CLOCKSOURCE_SMCLK,              // SMCLK Clock Source
+            TIMER_A_CLOCKSOURCE_DIVIDER_8,          // SMCLK/8 = 6MHz
+            90000,                                  // 15ms debounce period
+            TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Timer interrupt
+            TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE ,    // Enable CCR0 interrupt
+            TIMER_A_DO_CLEAR                        // Clear value
+    };
+
+
+    //Configuring TimerA1 for Up Mode
+    TA0CTL = TASSEL__SMCLK | MC__UP | TACLR;  // SMCLK, up mode, clear TAR
+    Timer_A_configureUpMode(TIMER_A1_BASE, &upConfigMQTT);
+    Interrupt_enableInterrupt(INT_TA1_0);
+    Interrupt_enableInterrupt(INT_PORT1);
+    Interrupt_enableMaster();
 
     retVal = configureSimpleLinkToDefaultState();
     if(retVal < 0)

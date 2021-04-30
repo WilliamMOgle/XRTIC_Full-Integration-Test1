@@ -27,6 +27,7 @@ void initialize_LaunchpadLED2_blue();
 void turnOn_LaunchpadLED2_blue();
 void turnOff_LaunchpadLED2_blue();
 void toggle_LaunchpadLED2_blue();
+void button_two_interrupt_init();
 
 
 

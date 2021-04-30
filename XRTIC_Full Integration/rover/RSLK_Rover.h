@@ -108,12 +108,12 @@ void rotateLeftForTimeComp(uint32_t, uint32_t);
 //indefinitely
 void moveForwardIndefinitely(uint32_t);
 void moveBackwardIndefinitely(uint32_t);
-void rotateRightIndefinitely();
-void rotateLeftIndefinitely();
+void rotateRightIndefinitely(uint32_t);
+void rotateLeftIndefinitely(uint32_t);
 void moveForwardIndefinitelyComp(uint32_t);
 void moveBackwardIndefinitelyComp(uint32_t);
-void rotateRightIndefinitelyComp();
-void rotateLeftIndefinitelyComp();
+void rotateRightIndefinitelyComp(uint32_t);
+void rotateLeftIndefinitelyComp(uint32_t);
 //physical parameter
 void moveForwardForDistance(uint32_t, uint32_t);    //millimeters
 void moveBackwardForDistance(uint32_t, uint32_t);   //millimeters

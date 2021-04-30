@@ -9,21 +9,9 @@
 
 #include "main.h"
 
-//SENSOR STUFF
-#include "msp.h"
-#include "ir/Clock.h"
-#include "ir/I2CB1.h"
-#include "ir/CortexM.h"
-#include "ir/LPF.h"
-#include "ir/opt3101.h"
-#include "ir/LaunchPad.h"
 
-uint32_t Distances[3];
-uint32_t FilteredDistances[3];
-uint32_t Amplitudes[3];
-uint32_t TxChannel;
-uint32_t StartTime;
-uint32_t TimeToConvert; // in msec
+
+
 bool pollDistanceSensor(void){
   if(OPT3101_CheckDistanceSensor()){
     TxChannel = OPT3101_GetMeasurement(Distances,Amplitudes);
@@ -67,33 +55,6 @@ volatile unsigned int S1buttonDebounce = 0;
 volatile unsigned int S2buttonDebounce = 0;
 volatile int publishID = 0;
 
-
-
-
-/* Port mapper configuration register */
-
-//WILLI USING A03, A04
-/*
-const uint8_t port_mapping[] =
-{
-    //Port P2:
-    //PM_TA0CCR1A, PM_TA0CCR2A, PM_TA0CCR3A, PM_NONE, PM_TA1CCR1A, PM_NONE, PM_NONE, PM_NONE
-    PM_NONE, PM_NONE, PM_NONE, PM_NONE, PM_TA1CCR1A, PM_NONE, PM_NONE, PM_NONE
-};
-*/
-
-/* TimerA UpMode Configuration Parameter */
-const Timer_A_UpModeConfig upConfigMQTT =
-{
-        TIMER_A_CLOCKSOURCE_SMCLK,              // SMCLK Clock Source
-        TIMER_A_CLOCKSOURCE_DIVIDER_8,          // SMCLK/8 = 6MHz
-        90000,                                  // 15ms debounce period
-        TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Timer interrupt
-        TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE ,    // Enable CCR0 interrupt
-        TIMER_A_DO_CLEAR                        // Clear value
-};
-
-
 //
 // Number of bytes received from the host
 //
@@ -110,6 +71,7 @@ int main(int argc, char** argv)
 
     // Initialize MCU
     MCU_init();
+    initUART();
 
     bool tagReseted = true;
 
@@ -126,9 +88,9 @@ int main(int argc, char** argv)
     t_sNfcRWMode sRWMode;
     t_sNfcRWCommBitrate sRWBitrate;
 
-
     NFC_completeInit();
     initialize_LaunchpadLEDs();
+    button_two_interrupt_init();
 
     //Init Timer
     initSWTimer1();
@@ -141,15 +103,6 @@ int main(int argc, char** argv)
 
     //START SETUP FOR ROVER AND MQTT
     MAP_WDT_A_holdTimer();
-
-    //ROVER addition
-    //rslk rover init
-    /*initRSLKRover(SYS_CLK);
-    initRSLKTimer32(RSLK_TIMER32_BASE);
-    enableWheel(&right_wheel_data);
-    setWheelDirForward(&right_wheel_data);
-    enableWheel(&left_wheel_data);
-    setWheelDirForward(&left_wheel_data);*/
 
     //rslk rover init
     initRSLKRover(SYS_CLK);
@@ -164,65 +117,11 @@ int main(int argc, char** argv)
     speed = 100;
     stopRover();
 
-    //initMCU();
-    initUART();
-
     transmitString("Hey");
-
 
     _i32 retVal = -1;
     retVal = initializeAppVariables();
     ASSERT_ON_ERROR(retVal);
-
-    // Stop WDT and initialize the system-clock of the MCU
-    //stopWDT();
-    //initClk();
-
-    // GPIO Setup for Pins 2.0-2.2
-    //MAP_PMAP_configurePorts((const uint8_t *) port_mapping, PMAP_P2MAP, 1,
-    //    PMAP_DISABLE_RECONFIGURATION);
-
-    //MAP_GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2,
-    //    GPIO_PIN0 | GPIO_PIN1 | GPIO_PIN2, GPIO_PRIMARY_MODULE_FUNCTION);
-
-    //Confinguring P1.1 & P1.4 as an input and enabling interrupts
-    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN4);
-    GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN4);
-    GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN4);
-    GPIO_interruptEdgeSelect(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN4, GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN1 | GPIO_PIN4);
-
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setAsOutputPin(GPIO_PORT_P1, GPIO_PIN0);
-
-    //STUFF FROM HERE TO END NEEDS TO STAY???
-
-    /* Configure TimerA0 for RGB LED*/
-    //TA0CCR0 = PWM_PERIOD;                   // PWM Period
-    //TA0CCTL1 = OUTMOD_7;                    // CCR1 reset/set
-    //TA0CCR1 = PWM_PERIOD * (0/255);                 // CCR1 PWM duty cycle
-    //TA0CCTL2 = OUTMOD_7;                    // CCR2 reset/set
-    //TA0CCR2 = PWM_PERIOD * (0/255);                 // CCR2 PWM duty cycle
-    //TA0CCTL3 = OUTMOD_7;                    // CCR3 reset/set
-    //TA0CCR3 = PWM_PERIOD * (0/255);                 // CCR3 PWM duty cycle
-    TA0CTL = TASSEL__SMCLK | MC__UP | TACLR;  // SMCLK, up mode, clear TAR
-
-    //Configuring TimerA1 for Up Mode
-    Timer_A_configureUpMode(TIMER_A1_BASE, &upConfigMQTT);
-
-    Interrupt_enableInterrupt(INT_TA1_0);
-    Interrupt_enableInterrupt(INT_PORT1);
-    Interrupt_enableMaster();
-
-
-
-    //ROVER MOVE FUNCTION
-    //moveForwardForTime(270, 2000);      //move forward at 27 RPM for 2 seconds
-    //moveForwardIndefinitely(300);
-    //END
-
-    /* Configure command line interface */
-    //CLI_Configure();
 
     displayBanner();
 
@@ -232,46 +131,20 @@ int main(int argc, char** argv)
 
 
     //SENSOR SET UP
-    int i = 0;
     uint32_t channel = 1;
-    //DisableInterrupts();
-    //Clock_Init48MHz();
     SysTick->LOAD = 0x00FFFFFF;           // maximum reload value
     SysTick->CTRL = 0x00000005;           // enable SysTick with no interrupts
     I2CB1_Init(30); // baud rate = 12MHz/30=400kHz
-    //Init();
-    //Clear();
-    transmitString("OPT3101\n\r");
-
-    transmitString("L=\n\r");
-    //SetCursor(0, 2);
-    transmitString("C=\n\r");
-    //SetCursor(0, 3);
-    transmitString("R=\n\r");
-    //SetCursor(0, 4);
-    transmitString("Interrupts\n\r");
-    //SetCursor(0, 5);
-    transmitString("SNR L=\n\r");
-    //SetCursor(0, 6);
-    transmitString("SNR C=\n\r");
-    //SetCursor(0, 7);
-    transmitString("SNR R=\n\r");
     OPT3101_Init();
     OPT3101_Setup();
     OPT3101_CalibrateInternalCrosstalk();
     OPT3101_ArmInterrupts(&TxChannel, Distances, Amplitudes);
     StartTime = SysTick->VAL;
-    //TxChannel = 3;
-    //OPT3101_StartMeasurementChannel(channel);
     OPT3101_StartMeasurement();
-    LPF_Init(100,32);
-    LPF_Init2(100,32);
-    LPF_Init3(100,32);
-    //EnableInterrupts();
-
     //END IR INIT
-
+#if MQTT_ENABLE
     setUpMQTT(retVal, buf, readbuf, rc);
+#endif
 
     //message fore 7 segment
     MQTTMessage msg7Seg;
@@ -378,6 +251,7 @@ int main(int argc, char** argv)
 
         if(recMQTTData.nfcEnabled)
         {
+            transmitString("In NFC");transmitNewLine();
             eTempNFCState = NFC_run();
 
             if(eTempNFCState == NFC_DATA_EXCHANGE_PROTOCOL)
@@ -697,7 +571,7 @@ int main(int argc, char** argv)
 
 
         //BUMP SENSOR CHECKS
-        /*if(bumpSensorPressed(BUMP0))
+        if(bumpSensorPressed(BUMP0))
             transmitString("Bump 0 Pressed!\n\r");
         if(bumpSensorPressed(BUMP1))
             transmitString("Bump 1 Pressed!\n\r");
@@ -708,34 +582,34 @@ int main(int argc, char** argv)
         if(bumpSensorPressed(BUMP4))
             transmitString("Bump 4 Pressed!\n\r");
         if(bumpSensorPressed(BUMP5))
-            transmitString("Bump 5 Pressed!\n\r");*/
-
-
-
-        //transmitString("END BUMP \n\r");
+            transmitString("Bump 5 Pressed!\n\r");
 
 
         //MINIMAL SENSOR STUFF
-        /*OPT3101_StartMeasurementChannel(channel);
-        if(channel < 2)
+        if(!tag_present)
         {
-            channel++;
-        }
-        else
-        {
-            channel = 0;
-        }
-        OPT3101_GetMeasurement(Distances,Amplitudes);
+            OPT3101_StartMeasurementChannel(channel);
+            if(channel < 2)
+            {
+                channel++;
+            }
+            else
+            {
+                channel = 0;
+            }
+            OPT3101_GetMeasurement(Distances,Amplitudes);
 
-        transmitString("Left: ");
-        transmitInt(Distances[0]);
-        transmitString("mm | ");
-        transmitString("Center: ");
-        transmitInt(Distances[1]);
-        transmitString("mm | ");
-        transmitString("Right: ");
-        transmitInt(Distances[2]);
-        transmitString("mm\n\r");/*
+            transmitString("Left: ");
+            transmitInt(Distances[0]);
+            transmitString("mm | ");
+            transmitString("Center: ");
+            transmitInt(Distances[1]);
+            transmitString("mm | ");
+            transmitString("Right: ");
+            transmitInt(Distances[2]);
+            transmitString("mm\n\r");
+        }
+
 
         /*sensorIRData.leftDistance = Distances[0];               //generate MQTT message
         sensorIRData.rightDistance = Distances[1];
@@ -748,6 +622,10 @@ int main(int argc, char** argv)
 
         //END MINIMAL SENSOR STUFF
 
+        if(ROBONAV_ENABLE)
+        {
+            roboNav();
+        }
 
     }
 
