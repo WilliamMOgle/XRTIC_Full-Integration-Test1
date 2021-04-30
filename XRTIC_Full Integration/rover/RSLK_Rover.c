@@ -209,6 +209,7 @@ void checkEndCond()
         }
     }
 }
+
 //  compensator
 //  Implements a compensator for the RSLK wheels. Using the
 //  compensator provides RPM outputs that more closely match
@@ -304,6 +305,7 @@ void compensator()
         }
     }
 }
+
 //  timeConditionMet
 //  Determines if the time condition is met. Used for the 'forTime' move functions
 //  inputs:     none
