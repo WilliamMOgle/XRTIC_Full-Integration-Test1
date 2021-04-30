@@ -7,13 +7,23 @@
 
 #include <servo180.h>
 
-//initializes servo given a fully defined Servo180 struct
+//  servo180Init
+//  initializes servo given a fully defined Servo180 struct
+//  inputs:     servoSettings point to Servo180 struct
+//  outputs:    none
 void servo180Init(Servo180 *servoSettings)
 {
     setPWM(&servoSettings->pwm_settings);
 }
-
-//initializes servo with user-inputted arguments
+//  servo180InitArgs
+//  initializes servo with user-inputted arguments
+//  inputs:     servoSettings point to Servo180 struct
+//              _sys_clk in Hz
+//              _closed_deg in degrees
+//              _open_deg in degrees
+//              _port indicates port number
+//              _pin indicates pin number
+//  outputs:    none
 void servo180InitArgs(Servo180 *servoSettings, uint32_t _sys_clk, double _closed_deg,
                       double _open_deg, uint32_t _port, uint32_t _pin)
 {
@@ -31,7 +41,11 @@ void servo180InitArgs(Servo180 *servoSettings, uint32_t _sys_clk, double _closed
     servo180Init(servoSettings);
 }
 
-//moves the servo horn to a specific degree
+//  moveServoToDegree
+//  moves the servo horn to a specific degree
+//  inputs:     degree indicates degree number to turn to
+//              servoSettings point to Servo180 struct
+//  outputs:    bool indicating successful move
 bool moveServoToDegree(double degree, Servo180 *servoSettings)
 {
     double dutyCycle = convertDegToDuty(degree, servoSettings);
@@ -49,7 +63,11 @@ bool moveServoToDegree(double degree, Servo180 *servoSettings)
 
 }
 
-//helper function that converts a degree to a duty cycle percent via a linear mapping function
+//  convertDegToDuty
+//  helper function that converts a degree to a duty cycle percent via a linear mapping function
+//  inputs:     degree to convert to duty cycle
+//              servoSettings point to Servo180 struct
+//  outputs:    double indicating duty cycle
 double convertDegToDuty(double degree, Servo180 *servoSettings)
 {
     double dutyCycle = ((degree - ABSOLUTE_LOWER_DEG_BOUND) * (ABSOLUTE_UPPER_DUTY_BOUND - ABSOLUTE_LOWER_DUTY_BOUND)
@@ -57,38 +75,58 @@ double convertDegToDuty(double degree, Servo180 *servoSettings)
     return dutyCycle;
 }
 
-//returns the current degree of the servo
+//  getDegree
+//  returns the current degree of the servo
+//  inputs:     servoSettings point to Servo180 struct
+//  outputs:    double indicating number of degrees
 double getDegree(Servo180 *servoSettings)
 {
     return servoSettings->degree;
 }
 
-//sets the open degree
+//  setOpenDegree
+//  sets the open degree
+//  inputs:     degree indicates degree number to turn to
+//              servoSettings point to Servo180 struct
+//  outputs:    none
 void setOpenDegree(double degree, Servo180 *servoSettings)
 {
     servoSettings->openDeg = degree;
 }
 
-//sets the closed degree
+//  setClosedDegree
+//  sets the closed degree
+//  inputs:     degree indicates degree number to turn to
+//              servoSettings point to Servo180 struct
+//  outputs:    none
 void setClosedDegree(double degree, Servo180 *servoSettings)
 {
     servoSettings->closedDeg = degree;
 }
 
-//opens the servo as defined by 'openDeg'
+//  openServo
+//  opens the servo as defined by 'openDeg'
+//  inputs:     servoSettings point to Servo180 struct
+//  outputs:    none
 void openServo(Servo180 *servoSettings)
 {
     moveServoToDegree(servoSettings->openDeg, servoSettings);
 }
 
-//closes the servo as defined by 'closedDeg'
+//  closeServo
+//  closes the servo as defined by 'closedDeg'
+//  inputs:     servoSettings point to Servo180 struct
+//  outputs:    none
 void closeServo(Servo180 *servoSettings)
 {
     moveServoToDegree(servoSettings->closedDeg, servoSettings);
 }
 
-//toggles between open and closed, as defined by 'closedDeg' and 'openDeg'
-//if servo is not currently open or closed, the servo is moved to the open position
+//  toggleOpenClose
+//  toggles between open and closed, as defined by 'closedDeg' and 'openDeg'
+//  if servo is not currently open or closed, the servo is moved to the open position
+//  inputs:     servoSettings point to Servo180 struct
+//  outputs:    none
 void toggleOpenClose(Servo180 *servoSettings)
 {
     if(servoSettings->degree == servoSettings->closedDeg)

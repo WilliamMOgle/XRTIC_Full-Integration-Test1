@@ -6,7 +6,8 @@
  */
 #include "RSLK_Rover.h"
 
-//Handler for encoder interrupts
+//  PORT_5_IRQHandler
+//  Handler for encoder interrupts
 void PORT5_IRQHandler(void) //ERB
 {
     //left or right wheel interrupt, since they are both on the same port
@@ -69,9 +70,9 @@ void PORT5_IRQHandler(void) //ERB
 
     clearEncBInterrupt();
 }
-
-//This Timer32 Interrupt Handler contains all the
-//different software timers that the RSLK needs.
+//  T32_INT2_IRQHandler
+//  This Timer32 Interrupt Handler contains all the
+//  different software timers that the RSLK needs.
 void T32_INT2_IRQHandler(void)
 {
 
@@ -95,7 +96,10 @@ void T32_INT2_IRQHandler(void)
 
 //FOUR STOP FUNCTIONS//////////////////////////////////
 
-//Stops the rover using the compensator
+//  stopRover
+//  Stops the rover using the compensator
+//  inputs:     none
+//  outputs:    none
 void stopRover()
 {
     rover_state = ROVER_STOPPED;
@@ -105,8 +109,11 @@ void stopRover()
     transmitString("stopRover\n\r");
 }
 
-//stops the rover by setting the wheel PWM to 0 immediately
-//and without the compensator
+//  hardStop
+//  stops the rover by setting the wheel PWM to 0 immediately
+//  and without the compensator
+//  inputs:     none
+//  outputs:    none
 void hardStop()
 {
     setWheelDutyCycle(&right_wheel_data, 0);
@@ -122,7 +129,10 @@ void hardStop()
     transmitString("hardStop\n\r");
 }
 
-//Stops the right wheel without the compensator
+//  hardStopRight
+//  Stops the right wheel without the compensator
+//  inputs:     none
+//  outputs:    none
 void hardStopRight()
 {
     setWheelDutyCycle(&right_wheel_data, 0);
@@ -134,7 +144,10 @@ void hardStopRight()
     transmitString("hardStopRight\n\r");
 }
 
-//Stops the left wheel without the compensator
+//  hardStopLeft
+//  Stops the left wheel without the compensator
+//  inputs:     none
+//  outputs:    none
 void hardStopLeft()
 {
     setWheelDutyCycle(&left_wheel_data, 0);
@@ -146,22 +159,31 @@ void hardStopLeft()
     transmitString("hardStopLeft\n\r");
 }
 
-//Disables the rover by setting the SLP pin low
+//  disableRover
+//  Disables the rover by setting the SLP pin low
+//  inputs:     none
+//  outputs:    none
 void disableRover()
 {
     disableWheel(&right_wheel_data);
     disableWheel(&left_wheel_data);
 }
 
-//Enables the rover by setting the SLP pin high
+//  enableRover
+//  Enables the rover by setting the SLP pin high
+//  inputs:     none
+//  outputs:    none
 void enableRover()
 {
     enableWheel(&right_wheel_data);
     enableWheel(&left_wheel_data);
 }
 
-//Determines if either a time condition or rotation condition was
-//met and stops the rover if it has.
+//  checkEndCond
+//  Determines if either a time condition or rotation condition was
+//  met and stops the rover if it has.
+//  inputs:     none
+//  outputs:    none
 void checkEndCond()
 {
     if(rover_state != ROVER_STOPPED)
@@ -187,12 +209,14 @@ void checkEndCond()
         }
     }
 }
-
-//Implements a compensator for the RSLK wheels. Using the
-//compensator provides RPM outputs that more closely match
-//the desired RPM. However, the RPM output is not as consistent
-//as without the compensator. There are move functions that use
-//compensator or not. Must be called on every loop iteration.
+//  compensator
+//  Implements a compensator for the RSLK wheels. Using the
+//  compensator provides RPM outputs that more closely match
+//  the desired RPM. However, the RPM output is not as consistent
+//  as without the compensator. There are move functions that use
+//  compensator or not. Must be called on every loop iteration.
+//  inputs:     none
+//  outputs:    none
 void compensator()
 {
     if(right_wheel_data.enable_compensator)
@@ -280,8 +304,10 @@ void compensator()
         }
     }
 }
-
-//Determines if the time condition is met. Used for the 'forTime' move functions
+//  timeConditionMet
+//  Determines if the time condition is met. Used for the 'forTime' move functions
+//  inputs:     none
+//  outputs:    bool indicating if time condition was met
 bool timeConditionMet()
 {
     bool time_cond = false;
@@ -291,14 +317,20 @@ bool timeConditionMet()
     return time_cond;
 }
 
-//Resets the move_timer struct to a null state
+//  resetTimeTracker
+//  Resets the move_timer struct to a null state
+//  inputs:     none
+//  outputs:    none
 void resetTimeTracker()
 {
     move_timer.count = 0;
     move_timer.target_count = 0;
 }
 
-//Resets the rover_rotation_tracker struct to a null state
+//  resetRotationTracker
+//  Resets the rover_rotation_tracker struct to a null state
+//  inputs:     none
+//  outputs:    none
 void resetRotationTracker()
 {
     rover_rotation_tracker.current_rotation = 0;
@@ -307,7 +339,10 @@ void resetRotationTracker()
     left_wheel_data.wheel_rotation_tracker.ticks = 0;
 }
 
-//Determines if a wheel rotation condition was met. Used for rotation and distance move functions
+//  rotationConditionMet
+//  Determines if a wheel rotation condition was met. Used for rotation and distance move functions
+//  inputs:     none
+//  outputs:    bool indicating if rotation condition was met
 bool rotationConditionMet()
 {
     bool rotCond = false;
@@ -320,7 +355,10 @@ bool rotationConditionMet()
 
 }
 
-//Finds the current rotation of each wheel in degrees from when the measurement was started
+//  currentRoverRotation
+//  Finds the current rotation of each wheel in degrees from when the measurement was started
+//  inputs:     none
+//  outputs:    none
 void currentRoverRotation()
 {
     //averaging the rotation counts on both wheels because they should be the same
@@ -328,8 +366,11 @@ void currentRoverRotation()
             left_wheel_data.wheel_rotation_tracker.ticks) / 2;
 }
 
-//Meant to be called on each loop iteration. Updates the wheel states of the rover.
-//It will update the rover state if that is enabled by the user.
+//  updateRoverState
+//  Meant to be called on each loop iteration. Updates the wheel states of the rover.
+//  It will update the rover state if that is enabled by the user.
+//  inputs:     none
+//  outputs:    none
 void updateRoverState()
 {
     updateWheelState(&right_wheel_data);
@@ -360,14 +401,20 @@ void updateRoverState()
     }
 }
 
-//Clears the interrupts on the motor encoder port
+//  clearEncBInterrupt
+//  Clears the interrupts on the motor encoder port
+//  inputs:     none
+//  outputs:    none
 void clearEncBInterrupt()
 {
     GPIO_clearInterruptFlag(right_wheel_data.wheel_encb_pin.portNum, right_wheel_data.wheel_encb_pin.pinNum);
     GPIO_clearInterruptFlag(left_wheel_data.wheel_encb_pin.portNum, left_wheel_data.wheel_encb_pin.pinNum);
 }
 
-//Initializes RSLK Rover structs
+//  initRSLKRover
+//  Initializes RSLK Rover structs
+//  inputs:     _sys_clk in Hz
+//  outputs:    none
 void initRSLKRover(uint32_t _sys_clk)
 {
     rover_state = ROVER_STOPPED;
@@ -386,7 +433,10 @@ void initRSLKRover(uint32_t _sys_clk)
     Interrupt_enableMaster();
 }
 
-//Initializes the Timer32 that the RSLK will use
+//  initRSLKTimer32
+//  Initializes the Timer32 that the RSLK will use
+//  inputs:     none
+//  outputs:    none
 void initRSLKTimer32()
 {
     //T32 operates off of the master clock
@@ -397,9 +447,12 @@ void initRSLKTimer32()
     Timer32_startTimer(RSLK_TIMER32_BASE, CONTINUOUS);
 }
 
-//Maps an inputted RPM to a duty cycle based on a rough approximation
-//This function is used to set the motor duty cycle for all
-//non-compensated move functions.
+//  rawConvertRPMToDutyCycle
+//  Maps an inputted RPM to a duty cycle based on a rough approximation
+//  This function is used to set the motor duty cycle for all
+//  non-compensated move functions.
+//  inputs:     _rpm to convert to duty cycle
+//  outputs:    double that indicates duty cycle in fractional form
 double rawConvertRPMToDutyCycle(uint32_t _rpm)
 {
     //Nominal rpm unit is deci rpm
@@ -418,8 +471,11 @@ double rawConvertRPMToDutyCycle(uint32_t _rpm)
     return dutyCycle;
 }
 
-//Converts an overall rover rotation to
-//an individual wheel rotation
+//  rotationDegConversion
+//  Converts an overall rover rotation to
+//  an individual wheel rotation
+//  inputs:     _deg to convert to individual wheel rotation
+//  outputs:    uint32_t indicates individual wheel rotation
 uint32_t rotationDegConversion(uint32_t _deg)
 {
     uint32_t conv_deg;
@@ -427,8 +483,11 @@ uint32_t rotationDegConversion(uint32_t _deg)
     return conv_deg;
 }
 
-//Converts an overall desired distance for the RSLK
-//to travel to an individual wheel rotation.
+//  distanceDegConversion
+//  Converts an overall desired distance for the RSLK
+//  to travel to an individual wheel rotation.
+//  inputs:     _mm to convert to number of wheel turns
+//  outputs:    uint32_t indicates wheel turns in degrees
 uint32_t distanceDegConversion(uint32_t _mm)
 {
     uint32_t conv_deg;
@@ -436,14 +495,20 @@ uint32_t distanceDegConversion(uint32_t _mm)
     return conv_deg;
 }
 
-//Enables the compensator
+//  enableCompensator
+//  Enables the compensator
+//  inputs:     none
+//  outputs:    none
 void enableCompensator()
 {
     enableWheelCompensator(&right_wheel_data);
     enableWheelCompensator(&left_wheel_data);
 }
 
-//Disables the compensator
+//  disableCompensator
+//  Disables the compensator
+//  inputs:     none
+//  outputs:    none
 void disableCompensator()
 {
     disableWheelCompensator(&right_wheel_data);
@@ -452,7 +517,11 @@ void disableCompensator()
 
 //COMPENSATED MOVE FUNCTIONS BELOW//////////////////////////
 
-//Time
+//  moveForwardForTimeComp
+//  robot moves forward for a specified amount of time
+//  inputs:     _rpm indicates robot speed
+//              milliSecs indicates amount of time
+//  outputs:    none
 void moveForwardForTimeComp(uint32_t _rpm, uint32_t milliSecs)
 {
     enableCompensator();
@@ -469,6 +538,11 @@ void moveForwardForTimeComp(uint32_t _rpm, uint32_t milliSecs)
     rover_state = MOVING_FORWARD;
 }
 
+//  moveBackwardForTimeComp
+//  robot moves backward for a specified amount of time
+//  inputs:     _rpm indicates robot speed
+//              milliSecs indicates amount of time
+//  outputs:    none
 void moveBackwardForTimeComp(uint32_t _rpm, uint32_t milliSecs)
 {
     enableCompensator();
@@ -485,6 +559,11 @@ void moveBackwardForTimeComp(uint32_t _rpm, uint32_t milliSecs)
     rover_state = MOVING_BACKWARD;
 }
 
+//  rotateRightForTimeComp
+//  robot rotates to the right for a specified amount of time
+//  inputs:     _rpm indicates robot speed
+//              milliSecs indicates amount of time
+//  outputs:    none
 void rotateRightForTimeComp(uint32_t _rpm, uint32_t milliSecs)
 {
     enableCompensator();
@@ -500,6 +579,11 @@ void rotateRightForTimeComp(uint32_t _rpm, uint32_t milliSecs)
     rover_state = ROTATING_RIGHT;
 }
 
+//  rotateLeftForTimeComp
+//  robot rotates to the left for a specified amount of time
+//  inputs:     _rpm indicates robot speed
+//              milliSecs indicates amount of time
+//  outputs:    none
 void rotateLeftForTimeComp(uint32_t _rpm, uint32_t milliSecs)
 {
     enableCompensator();
@@ -515,7 +599,10 @@ void rotateLeftForTimeComp(uint32_t _rpm, uint32_t milliSecs)
     rover_state = ROTATING_LEFT;
 }
 
-//Indefinitely
+//  moveForwardIndefinitelyComp
+//  robot moves forward indefinitely
+//  inputs:     _rpm indicates robot speed
+//  outputs:    none
 void moveForwardIndefinitelyComp(uint32_t _rpm)
 {
     enableCompensator();
@@ -529,6 +616,10 @@ void moveForwardIndefinitelyComp(uint32_t _rpm)
     move_end_cond = NONE;
 }
 
+//  moveBackwardIndefinitelyComp
+//  robot moves backward indefinitely
+//  inputs:     _rpm indicates robot speed
+//  outputs:    none
 void moveBackwardIndefinitelyComp(uint32_t _rpm)
 {
     enableCompensator();
@@ -541,6 +632,10 @@ void moveBackwardIndefinitelyComp(uint32_t _rpm)
     move_end_cond = NONE;
 }
 
+//  rotateRightIndefinitelyComp
+//  robot rotates right indefinitely
+//  inputs:     _rpm indicates robot speed
+//  outputs:    none
 void rotateRightIndefinitelyComp(uint32_t _rpm)
 {
     enableCompensator();
@@ -553,6 +648,10 @@ void rotateRightIndefinitelyComp(uint32_t _rpm)
     move_end_cond = NONE;
 }
 
+//  rotateLeftIndefinitelyComp
+//  robot rotates left indefinitely
+//  inputs:     _rpm indicates robot speed
+//  outputs:    none
 void rotateLeftIndefinitelyComp(uint32_t _rpm)
 {
     enableCompensator();
@@ -565,7 +664,11 @@ void rotateLeftIndefinitelyComp(uint32_t _rpm)
     move_end_cond = NONE;
 }
 
-//Physical parameters
+//  rotateRightForDegreesComp
+//  robot rotates right for a specified amount of degrees
+//  inputs:     _rpm indicates robot speed
+//              degrees indicate number of degrees to turn
+//  outputs:    none
 void rotateRightForDegreesComp(uint32_t _rpm, uint32_t degrees)
 {
     enableCompensator();
@@ -580,6 +683,11 @@ void rotateRightForDegreesComp(uint32_t _rpm, uint32_t degrees)
     move_end_cond = ROTATION;
 }
 
+//  rotateLeftForDegreesComp
+//  robot rotates left for a specified amount of degrees
+//  inputs:     _rpm indicates robot speed
+//              degrees indicate number of degrees to turn
+//  outputs:    none
 void rotateLeftForDegreesComp(uint32_t _rpm, uint32_t degrees)
 {
     enableCompensator();
@@ -594,6 +702,11 @@ void rotateLeftForDegreesComp(uint32_t _rpm, uint32_t degrees)
     move_end_cond = ROTATION;
 }
 
+//  moveForwardForDistanceComp
+//  robot moves forward a specified distance
+//  inputs:     _rpm indicates robot speed
+//              mm indicates distance to travel
+//  outputs:    none
 void moveForwardForDistanceComp(uint32_t _rpm, uint32_t mm)
 {
     enableCompensator();
@@ -608,6 +721,11 @@ void moveForwardForDistanceComp(uint32_t _rpm, uint32_t mm)
     move_end_cond = ROTATION;
 }
 
+//  moveBackwardForDistanceComp
+//  robot moves backward a specified distance
+//  inputs:     _rpm indicates robot speed
+//              mm indicates distance to travel
+//  outputs:    none
 void moveBackwardForDistanceComp(uint32_t _rpm, uint32_t mm)
 {
     enableCompensator();
@@ -624,7 +742,13 @@ void moveBackwardForDistanceComp(uint32_t _rpm, uint32_t mm)
 }
 
 /////NON COMPENSATED MOVE FUNCTIONS BELOW
-//Time
+
+//  moveForwardForTime
+//  robot moves forward for a specified amount of time
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//              milliSecs indicates amount of time
+//  outputs:    none
 void moveForwardForTime(uint32_t _rpm, uint32_t milliSecs)
 {
     disableCompensator();
@@ -644,6 +768,12 @@ void moveForwardForTime(uint32_t _rpm, uint32_t milliSecs)
     rover_state = MOVING_FORWARD;
 }
 
+//  moveBackwardForTime
+//  robot moves backward for a specified amount of time
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//              milliSecs indicates amount of time
+//  outputs:    none
 void moveBackwardForTime(uint32_t _rpm, uint32_t milliSecs)
 {
     disableCompensator();
@@ -663,6 +793,12 @@ void moveBackwardForTime(uint32_t _rpm, uint32_t milliSecs)
     rover_state = MOVING_BACKWARD;
 }
 
+//  rotateRightForTime
+//  robot rotates to the right for a specified amount of time
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//              milliSecs indicates amount of time
+//  outputs:    none
 void rotateRightForTime(uint32_t _rpm, uint32_t milliSecs)
 {
     disableCompensator();
@@ -681,6 +817,12 @@ void rotateRightForTime(uint32_t _rpm, uint32_t milliSecs)
     rover_state = ROTATING_RIGHT;
 }
 
+//  rotateLeftForTime
+//  robot rotates to the left for a specified amount of time
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//              milliSecs indicates amount of time
+//  outputs:    none
 void rotateLeftForTime(uint32_t _rpm, uint32_t milliSecs)
 {
     disableCompensator();
@@ -699,7 +841,11 @@ void rotateLeftForTime(uint32_t _rpm, uint32_t milliSecs)
     rover_state = ROTATING_LEFT;
 }
 
-//Indefinitely
+//  moveForwardIndefinitely
+//  robot moves forward indefinitely
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//  outputs:    none
 void moveForwardIndefinitely(uint32_t _rpm)
 {
     disableCompensator();
@@ -716,6 +862,11 @@ void moveForwardIndefinitely(uint32_t _rpm)
     move_end_cond = NONE;
 }
 
+//  moveBackwardIndefinitely
+//  robot moves backward indefinitely
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//  outputs:    none
 void moveBackwardIndefinitely(uint32_t _rpm)
 {
     disableCompensator();
@@ -732,6 +883,11 @@ void moveBackwardIndefinitely(uint32_t _rpm)
     move_end_cond = NONE;
 }
 
+//  rotateRightIndefinitely
+//  robot rotates to the right indefinitely
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//  outputs:    none
 void rotateRightIndefinitely(uint32_t _rpm)
 {
     disableCompensator();
@@ -748,6 +904,11 @@ void rotateRightIndefinitely(uint32_t _rpm)
     move_end_cond = NONE;
 }
 
+//  rotateLeftIndefinitely
+//  robot rotates to the left indefinitely
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//  outputs:    none
 void rotateLeftIndefinitely(uint32_t _rpm)
 {
     disableCompensator();
@@ -764,7 +925,12 @@ void rotateLeftIndefinitely(uint32_t _rpm)
     move_end_cond = NONE;
 }
 
-//Physical parameters
+//  rotateRightForDegrees
+//  robot rotates right for a specified amount of degrees
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//              degrees indicate number of degrees to turn
+//  outputs:    none
 void rotateRightForDegrees(uint32_t _rpm, uint32_t degrees)
 {
     disableCompensator();
@@ -783,6 +949,12 @@ void rotateRightForDegrees(uint32_t _rpm, uint32_t degrees)
     move_end_cond = ROTATION;
 }
 
+//  rotateLeftForDegrees
+//  robot rotates left for a specified amount of degrees
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//              degrees indicate number of degrees to turn
+//  outputs:    none
 void rotateLeftForDegrees(uint32_t _rpm, uint32_t degrees)
 {
     disableCompensator();
@@ -801,6 +973,12 @@ void rotateLeftForDegrees(uint32_t _rpm, uint32_t degrees)
     move_end_cond = ROTATION;
 }
 
+//  moveForwardForDistance
+//  robot moves forward a specified distance
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//              mm indicates distance to travel
+//  outputs:    none
 void moveForwardForDistance(uint32_t _rpm, uint32_t mm)
 {
     disableCompensator();
@@ -819,6 +997,12 @@ void moveForwardForDistance(uint32_t _rpm, uint32_t mm)
     move_end_cond = ROTATION;
 }
 
+//  moveBackwardForDistance
+//  robot moves backward a specified distance
+//  no compensation
+//  inputs:     _rpm indicates robot speed
+//              mm indicates distance to travel
+//  outputs:    none
 void moveBackwardForDistance(uint32_t _rpm, uint32_t mm)
 {
     disableCompensator();

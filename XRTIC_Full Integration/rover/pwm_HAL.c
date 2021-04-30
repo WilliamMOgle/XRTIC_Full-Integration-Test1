@@ -102,6 +102,15 @@ bool findPinIndex(PWM_Params *pwm_settings)
     return false;
 }
 
+//  setPWMArgs
+//  sets arguments for PWM instance
+//  inputs:     pwm_settings point to PWM_Params struct
+//              _sys_clk in Hz
+//              _freq in Hz
+//              _dutyCycle in decimal between 0 and 1
+//              _portNum indicates port number
+//              _pinNum indicates pin number
+//  outputs:    none
 void setPWMArgs(PWM_Params *pwm_settings, uint32_t _sys_clk, double _freq, double _dutyCycle, uint16_t _portNum, uint16_t _pinNum)
 {
     pwm_settings->sys_clk = ACLK_FREQ;
@@ -113,6 +122,10 @@ void setPWMArgs(PWM_Params *pwm_settings, uint32_t _sys_clk, double _freq, doubl
     setPWM(pwm_settings);
 }
 
+//  setPWM
+//  sets default arguments for PWM instance
+//  inputs:     pwm_settings point to PWM_Params struct
+//  outputs:    none
 void setPWM(PWM_Params *pwm_settings)
 {
     pwm_settings->sys_clk = ACLK_FREQ;
@@ -148,6 +161,10 @@ void setPWM(PWM_Params *pwm_settings)
 
 }
 
+//  calcDutyValue
+//  ensures duty cycle value is valid
+//  inputs:     pwm_settings point to PWM_Params struct
+//  outputs:    bool indicating valid duty cycle
 bool calcDutyValue(PWM_Params *pwm_settings)
 {
     if(pwm_settings->dutyCycle >= 0 && pwm_settings->dutyCycle <= 1)  //ensure duty cycle is within bounds
@@ -159,6 +176,11 @@ bool calcDutyValue(PWM_Params *pwm_settings)
         return false;
 }
 
+//  updateFrequency
+//  updates frequency field in PWM_Params struct
+//  inputs:     _freq in Hz
+//              pwm_settings point to PWM_Params struct
+//  outputs:    bool indicating successful update
 bool updateFrequency(double freq, PWM_Params *pwm_settings)
 {
     if(freq > 0)
@@ -173,6 +195,12 @@ bool updateFrequency(double freq, PWM_Params *pwm_settings)
     else
         return false;
 }
+
+//  updateDutyCycle
+//  updates duty cycle field in PWM_Params struct
+//  inputs:     duty_cycle in decimal between 0 and 1
+//              pwm_settings point to PWM_Params struct
+//  outputs:    bool indicating successful update
 bool updateDutyCycle(double duty_cycle, PWM_Params *pwm_settings)
 {
     if(duty_cycle >= 0 && duty_cycle <= 1)
@@ -186,12 +214,20 @@ bool updateDutyCycle(double duty_cycle, PWM_Params *pwm_settings)
         return false;
 }
 
+//  generatePWM
+//  enables PWM instance
+//  inputs:     pwm_settings point to PWM_Params struct
+//  outputs:    none
 void generatePWM(PWM_Params *pwm_settings)
 {
     //Generates a PWM with timer running in up mode
     Timer_A_generatePWM(PWM_Pins[pwm_settings->pin_index].timer, &pwm_settings->PWM_config);
 }
 
+//  GPIOInit
+//  initializes GPIO pins
+//  inputs:     pwm_settings point to PWM_Params struct
+//  outputs:    none
 void GPIOInit(PWM_Params *pwm_settings)
 {
     GPIO_setAsOutputPin(pwm_settings->output_pin.portNum, pwm_settings->output_pin.pinNum);
@@ -200,6 +236,10 @@ void GPIOInit(PWM_Params *pwm_settings)
 
 }
 
+//  clockSourceInit
+//  initializes clock source
+//  inputs:     none
+//  outputs:    none
 void clockSourceInit()
 {
     CS_setReferenceOscillatorFrequency(CS_REFO_128KHZ);
