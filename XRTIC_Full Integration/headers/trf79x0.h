@@ -11,6 +11,7 @@
 
 #include "nfc_spi.h"
 #include "mcu.h"
+#include "uart_HAL.h"
 #include "nfc_config.h"
 
 #ifdef __cplusplus

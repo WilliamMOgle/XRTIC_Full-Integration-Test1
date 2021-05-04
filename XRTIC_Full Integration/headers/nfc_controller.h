@@ -17,6 +17,7 @@
 #include "nfc_config.h"
 #include "nfc_initiator.h"
 #include "nfc_target.h"
+#include "uart_HAL.h"
 
 //*****************************************************************************
 

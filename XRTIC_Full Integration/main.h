@@ -48,18 +48,20 @@
 //---------DEFINES----------
 //system enables
 #define NFC_ENABLE 1
-#define ROVER_ENABLE 0
-#define BUMP_ENABLE 0
-#define IR_ENABLE 0
-#define ROBONAV_ENABLE 0
-#define GRIPPER_ENABLE 0
-#define MQTT_ENABLE 0
-#define SEG7_ENABLE 0
-#define TELEM_ENABLE 0
+#define ROVER_ENABLE 1
+#define BUMP_ENABLE 1
+#define IR_ENABLE 1
+#define ROBONAV_ENABLE 1
+#define GRIPPER_ENABLE 1
+#define MQTT_ENABLE 1
+#define SEG7_ENABLE 1
+#define TELEM_ENABLE 1
+#define REACT_ENABLE 1
 
 //ROVER DEFINES
 #define SYS_CLK 48000000
 #define ROVER_SPEED 2500
+#define NEG_REACTION_SPEED 2000
 
 //ROBONAV DEFINES
 
@@ -84,6 +86,13 @@ typedef enum
     SPEED_HOLD
 }Speed_Set;
 
+typedef enum
+{
+    POSITIVE_TAG,
+    NEGATIVE_TAG,
+    NO_TAG
+}Tag_Type;
+
 //------GLOBALS---------
 //rover
 Speed_Set speed_state;
@@ -97,6 +106,13 @@ uint32_t StartTime;
 uint32_t TimeToConvert; // in msec
 uint16_t g_ui16BytesReceived;// Number of bytes received from the host
 //nfc
+tNfcState eTempNFCState;
+tNfcState eCurrentNFCState;
+t_sNfcCEMode sCEMode;
+t_sNfcP2PMode sP2PMode;
+t_sNfcP2PCommBitrate sP2PBitrate;
+t_sNfcRWMode sRWMode;
+t_sNfcRWCommBitrate sRWBitrate;
 
 
 
@@ -104,6 +120,8 @@ uint16_t g_ui16BytesReceived;// Number of bytes received from the host
 void roboNav();
 void roverInit();
 void irInit();
-void nfc_tag_detect(bool*, uint8_t*);
+void positiveReaction();
+void negativeReaction();
+Tag_Type nfc_tag_detect(bool*, uint8_t*);
 
 #endif /* MAIN_H_ */

@@ -99,6 +99,27 @@ uint8_t TRF79x0_init(void)
 
 	g_eTrf7970Version = TRF7970_A;
 
+	int count_try = 0;
+	uint8_t buf_read = 0;
+    do{
+    // Send out SOFT_INIT + IDLE initial sequence to soft reset TRF7970A
+    TRF79x0_directCommand(TRF79X0_SOFT_INIT_CMD);
+    TRF79x0_directCommand(TRF79X0_IDLE_CMD);
+
+    // Delay to ensure soft reset has processed
+    MCU_delayMillisecond(1);
+
+    TRF79x0_readSingle(&buf_read,TRF79X0_MODULATOR_CONTROL_REG);
+    transmitNewLine();transmitInt(buf_read);
+
+
+    }while(buf_read != 0x91 && count_try++ < 5);
+
+    if(count_try >= 5)
+    {
+        return false;   //fail
+    }
+
 	return STATUS_SUCCESS;
 }
 
@@ -2146,14 +2167,14 @@ uint8_t TRF79x0_targetModeSetup(
 	//
 	// Register 0Bh. Regulator Control
 	//
-	if(g_bTRFExtAmpEnable)
-	{
-		TRF79x0_writeSingle(0x40, TRF79X0_REGULATOR_CONTROL_REG);
-	}
-	else
-	{
-		TRF79x0_writeSingle(0x00, TRF79X0_REGULATOR_CONTROL_REG);
-	}
+	//if(g_bTRFExtAmpEnable)
+	//{
+	//	TRF79x0_writeSingle(0x40, TRF79X0_REGULATOR_CONTROL_REG);
+	//}
+	//else
+	//{
+		TRF79x0_writeSingle(0x06, TRF79X0_REGULATOR_CONTROL_REG);
+	//}
 	
 	//
 	// Register 14h. FIFO IRQ Level
@@ -2208,6 +2229,7 @@ uint8_t TRF79x0_initiatorModeSetup(
 	t_sTRF79x0_InitiatorMode sInitiatorMode,
 	t_sTRF79x0_Bitrate sFrequency)
 {
+
 	uint8_t ui8TempBuffer[2];
 
 	// Reset Status Values
@@ -2235,6 +2257,8 @@ uint8_t TRF79x0_initiatorModeSetup(
 	// Idle Command
 	//
 	TRF79x0_directCommand(TRF79X0_IDLE_CMD);
+
+
 
 	//
 	// Register 09h. Modulator Control
@@ -2306,8 +2330,21 @@ uint8_t TRF79x0_initiatorModeSetup(
 	}
 	else
 	{
-		TRF79x0_writeSingle(0x00, TRF79X0_REGULATOR_CONTROL_REG);
+		TRF79x0_writeSingle(0x06, TRF79X0_REGULATOR_CONTROL_REG);
 	}
+
+    int count_try = 0;
+    uint8_t buf_read = 0;
+    do{
+    TRF79x0_readSingle(&buf_read,TRF79X0_REGULATOR_CONTROL_REG);
+    //transmitNewLine();transmitInt(buf_read);
+
+    }while(buf_read != 0x06 && count_try++ < 5);
+
+    if(count_try >= 5)
+    {
+        return false;   //fail
+    }
 
 	//
 	// Register 14h. FIFO IRQ Level

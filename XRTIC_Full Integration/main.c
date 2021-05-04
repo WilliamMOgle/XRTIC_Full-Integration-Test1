@@ -26,8 +26,8 @@ int main(int argc, char** argv)
     initialize_LaunchpadLEDs();
     initUART();
 
-    //Helpful Timer - NOT REQUIRED TO FUNCTION
-    Init_Timer32_0(TIMER32_INIT_COUNT, CONTINUOUS);
+    //Software Timers
+    Init_Timer32_0(TIMER32_INIT_COUNT, CONTINUOUS); //0.1ms per count
     initSWTimer1();
     initSWTimer2();
     updateSW1WaitCycles(30000);
@@ -35,6 +35,7 @@ int main(int argc, char** argv)
 
 #if ROVER_ENABLE
     roverInit();
+    bool rover_ctrl = true;
 #endif
 
 #if BUMP_ENABLE
@@ -49,10 +50,12 @@ int main(int argc, char** argv)
 
 #if NFC_ENABLE
     NFC_completeInit();
-    button_two_interrupt_init();
+
     g_ui16BytesReceived = 0x00;
     uint8_t count = 2;
     bool tag_present = false;
+    Tag_Type tag_type;
+    tag_type = NO_TAG;
 #endif
 
 #if MQTT_ENABLE
@@ -64,6 +67,7 @@ int main(int argc, char** argv)
     retVal = initializeAppVariables();
     ASSERT_ON_ERROR(retVal);
     setUpMQTT(retVal, buf, readbuf, rc);
+    button_two_interrupt_init();
 
     MQTTMessage msgRFID;
     MQTTMessageInit(&msgRFID);
@@ -97,7 +101,9 @@ int main(int argc, char** argv)
     //Clock Check
     transmitString("MCLK: ");
     transmitInt(CS_getMCLK());
-    //SW_Timer_1.elapsedCycles = 0;
+    SW_Timer_1.elapsedCycles = 0;
+
+    MCU_delayMillisecond(100);
 
     while(1)
     {
@@ -150,6 +156,21 @@ int main(int argc, char** argv)
 #endif
 
 #if NFC_ENABLE
+        tag_type = nfc_tag_detect(&tag_present, &count);
+
+#if ROVER_ENABLE
+        switch(tag_type)
+        {
+        case POSITIVE_TAG: break;
+        case NEGATIVE_TAG: break;
+        case NO_TAG: break;
+        default: break;
+        }
+#endif
+
+#endif
+
+#if (NFC_ENABLE & MQTT_ENABLE)
         //NFC ENABLE STATE MACHINE
         if(recMQTTData.newData)
         {
@@ -169,8 +190,28 @@ int main(int argc, char** argv)
 
         if(recMQTTData.nfcEnabled)
         {
-            nfc_tag_detect(&tag_present, &count);
+            tag_type = nfc_tag_detect(&tag_present, &count);
         }
+
+#if (ROVER_ENABLE & REACT_ENABLE)
+        switch(tag_type)
+        {
+        case POSITIVE_TAG: break;
+        case NEGATIVE_TAG:  rover_ctrl = false;
+                            speed_state = HOLD;
+                            initSWTimer2();
+                            updateSW2WaitCycles(20000); //2seconds
+                            negativeReaction();
+                            break;
+        case NO_TAG: break;
+        default: break;
+        }
+
+        if(!rover_ctrl && SW2TimerRollover())
+        {
+
+        }
+#endif
 #endif
 
 #if MQTT_ENABLE
@@ -235,96 +276,99 @@ int main(int argc, char** argv)
             default: break;
         }
         //transmitInt(speed);transmitNewLine();
-        if(recMQTTData.newData)
+        if(!rover_ctrl)
         {
-            if(recMQTTData.pressed)
+            if(recMQTTData.newData)
             {
-                //transmitString("Speed: ");
-                if(!strcmp(recMQTTData.key,"a"))
+                if(recMQTTData.pressed)
                 {
-                    //transmitInt(speed);transmitNewLine();
-                    speed_state = SPEED_INCREASE;
+                    //transmitString("Speed: ");
+                    if(!strcmp(recMQTTData.key,"a"))
+                    {
+                        //transmitInt(speed);transmitNewLine();
+                        speed_state = SPEED_INCREASE;
+                        //recMQTTData.newData = false;
+                    }
+                    else if(!strcmp(recMQTTData.key,"d"))
+                    {
+                        //transmitInt(speed);transmitNewLine();
+                        speed_state = SPEED_DECREASE;
+                        //recMQTTData.newData = false;
+                    }
+                    else if(!strcmp(recMQTTData.key,"up"))
+                    {
+                        moveForwardIndefinitelyComp(speed);
+                        recMQTTData.newData = false;
+                        segmentWrite('1');
+                    }
+                    else if(!strcmp(recMQTTData.key,"down"))
+                    {
+                        moveBackwardIndefinitelyComp(speed);
+                        recMQTTData.newData = false;
+                        segmentWrite('2');
+                    }
+                    else if(!strcmp(recMQTTData.key,"right"))
+                    {
+                        rotateRightIndefinitelyComp(speed/8);
+                        recMQTTData.newData = false;
+                        segmentWrite('3');
+                    }
+                    else if(!strcmp(recMQTTData.key,"left"))
+                    {
+                        rotateLeftIndefinitelyComp(speed/8);
+                        recMQTTData.newData = false;
+                        segmentWrite('4');
+                    }
+                }
+                else //released
+                {
+                    //rover state release logic
+                    switch(rover_state)
+                    {
+                    case MOVING_FORWARD:    if(!strcmp(recMQTTData.key,"up"))
+                                            {
+                                                stopRover();
+                                                //recMQTTData.newData = false;
+                                            }break;
+                    case MOVING_BACKWARD:   if(!strcmp(recMQTTData.key,"down"))
+                                            {
+                                                stopRover();
+                                                //recMQTTData.newData = false;
+                                            }break;
+                    case ROTATING_RIGHT:    if(!strcmp(recMQTTData.key,"right"))
+                                            {
+                                                stopRover();
+                                                //recMQTTData.newData = false;
+                                            }break;
+                    case ROTATING_LEFT:     if(!strcmp(recMQTTData.key,"left"))
+                                            {
+                                                stopRover();
+                                                //recMQTTData.newData = false;
+                                            }break;
+                    default:
+                        stopRover();
+                        break;
+                    }
+
+                    //speed state release logics
+                    switch(speed_state)
+                    {
+                    case SPEED_DECREASE:    if(!strcmp(recMQTTData.key,"d"))
+                                            {
+                                                speed_state = SPEED_HOLD;
+                                            }break;
+                    case SPEED_INCREASE:    if(!strcmp(recMQTTData.key,"a"))
+                                            {
+                                                speed_state = SPEED_HOLD;
+                                            }break;
+                    default: speed_state = SPEED_HOLD; break;
+                    }
+
                     //recMQTTData.newData = false;
                 }
-                else if(!strcmp(recMQTTData.key,"d"))
-                {
-                    //transmitInt(speed);transmitNewLine();
-                    speed_state = SPEED_DECREASE;
-                    //recMQTTData.newData = false;
-                }
-                else if(!strcmp(recMQTTData.key,"up"))
-                {
-                    moveForwardIndefinitelyComp(speed);
-                    recMQTTData.newData = false;
-                    segmentWrite('1');
-                }
-                else if(!strcmp(recMQTTData.key,"down"))
-                {
-                    moveBackwardIndefinitelyComp(speed);
-                    recMQTTData.newData = false;
-                    segmentWrite('2');
-                }
-                else if(!strcmp(recMQTTData.key,"right"))
-                {
-                    rotateRightIndefinitelyComp(speed/8);
-                    recMQTTData.newData = false;
-                    segmentWrite('3');
-                }
-                else if(!strcmp(recMQTTData.key,"left"))
-                {
-                    rotateLeftIndefinitelyComp(speed/8);
-                    recMQTTData.newData = false;
-                    segmentWrite('4');
-                }
+                //segmentWrite('F');
+                recMQTTData.newData = false;
             }
-            else //released
-            {
-                //rover state release logic
-                switch(rover_state)
-                {
-                case MOVING_FORWARD:    if(!strcmp(recMQTTData.key,"up"))
-                                        {
-                                            stopRover();
-                                            //recMQTTData.newData = false;
-                                        }break;
-                case MOVING_BACKWARD:   if(!strcmp(recMQTTData.key,"down"))
-                                        {
-                                            stopRover();
-                                            //recMQTTData.newData = false;
-                                        }break;
-                case ROTATING_RIGHT:    if(!strcmp(recMQTTData.key,"right"))
-                                        {
-                                            stopRover();
-                                            //recMQTTData.newData = false;
-                                        }break;
-                case ROTATING_LEFT:     if(!strcmp(recMQTTData.key,"left"))
-                                        {
-                                            stopRover();
-                                            //recMQTTData.newData = false;
-                                        }break;
-                default:
-                    stopRover();
-                    break;
-                }
-
-                //speed state release logics
-                switch(speed_state)
-                {
-                case SPEED_DECREASE:    if(!strcmp(recMQTTData.key,"d"))
-                                        {
-                                            speed_state = SPEED_HOLD;
-                                        }break;
-                case SPEED_INCREASE:    if(!strcmp(recMQTTData.key,"a"))
-                                        {
-                                            speed_state = SPEED_HOLD;
-                                        }break;
-                default: speed_state = SPEED_HOLD; break;
-                }
-
-                //recMQTTData.newData = false;
-            }
-            //segmentWrite('F');
-            recMQTTData.newData = false;
         }
 
 #endif
@@ -346,6 +390,7 @@ int main(int argc, char** argv)
 #endif
 
 #if IR_ENABLE
+        //if()
         OPT3101_StartMeasurementChannel(channel);
         if(channel < 2)
         {
@@ -402,12 +447,12 @@ int main(int argc, char** argv)
 
         if(recMQTTData.newData)
         {
-            if(recMQTTData.pressed && !strcmp(recMQTTData.key, "robonav"))
+            if(recMQTTData.pressed && !strcmp(recMQTTData.key, "rn"))
             {
                 robonav_on = true;
                 recMQTTData.newData = false;
             }
-            else if(!recMQTTData.pressed && !strcmp(recMQTTData.key, "robonav"))
+            else if(!recMQTTData.pressed && !strcmp(recMQTTData.key, "rn"))
             {
                 robonav_on  = false;
                 recMQTTData.newData = false;
@@ -420,6 +465,10 @@ int main(int argc, char** argv)
             roboNav();
 #endif
 
+#if (IR_ENABLE & BUMP_ENABLE & ROBONAV_ENABLE & ROVER_ENABLE)
+        roboNav();
+#endif
+        MCU_delayMillisecond(10);
     }
 }
 

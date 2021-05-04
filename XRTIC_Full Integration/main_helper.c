@@ -23,19 +23,30 @@ void roverInit()
     speed = 100;
 }
 
-void nfc_tag_detect(bool * tag_present, uint8_t * count)
+void positiveReaction()
 {
-    transmitString("In NFC");transmitNewLine();
+
+}
+
+void negativeReaction()
+{
+    rotateRightforTimeComp(NEG_REACTION_SPEED, 1000);
+}
+
+Tag_Type nfc_tag_detect(bool * tag_present, uint8_t * count)
+{
+    //transmitString("In NFC");transmitNewLine();
+    Tag_Type ret_tag_type = NO_TAG;
     eTempNFCState = NFC_run();
 
     if(eTempNFCState == NFC_DATA_EXCHANGE_PROTOCOL)
     {
 
-        if(count != 2)
+        if(*count != 2)
         {
-            count = 2;
+            *count = 2;
         }
-
+        transmitString("in exchange protocol\n\r");
         if(NFC_RW_getModeStatus(&sRWMode,&sRWBitrate))
         {
             NFC_RW_LED_POUT |= NFC_RW_LED_BIT;
@@ -49,9 +60,10 @@ void nfc_tag_detect(bool * tag_present, uint8_t * count)
                     {
                         turnOn_LaunchpadLED2_green();
                         transmitString("Type 2 Tag Detect\n\r");
-                        tag_present = true;
+                        *tag_present = true;
+                        ret_tag_type = NEGATIVE_TAG;
                         //turn 7 segment on to 0
-                        segmentWrite('b');
+                        //segmentWrite('b');
                        // msg7Seg.payload = "{\"sA\":0,\"sB\":0,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
                         //msg7Seg.payloadlen = strlen(msg7Seg.payload);
                         //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
@@ -85,13 +97,14 @@ void nfc_tag_detect(bool * tag_present, uint8_t * count)
             else if(sRWMode.bits.bISO15693 == 1)
             {
                 // T5T Tag State Machine
-                if(tag_present == false)
+                if(*tag_present == false)
                 {
                     turnOn_LaunchpadLED2_blue();
                     transmitString("Type 5 Tag Detect\n\r");
+                    ret_tag_type = POSITIVE_TAG;
                     //turn 7 segment on to 0
-                    segmentWrite('a');
-                    tag_present = true;
+                    //segmentWrite('a');
+                    *tag_present = true;
                     //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":0,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
                     //msg7Seg.payloadlen = strlen(msg7Seg.payload);
                     //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
@@ -114,10 +127,10 @@ void nfc_tag_detect(bool * tag_present, uint8_t * count)
     else
     {
         // Clear LEDs (RX & TX)
-        if(count != 0)
-            count--;
+        if(*count != 0)
+            *count--;
 
-        if(count == 0)
+        if(*count == 0)
         {
            turnOff_LaunchpadLED1();
            turnOff_LaunchpadLED2_red();//LaunchpadLED2_green
@@ -127,7 +140,7 @@ void nfc_tag_detect(bool * tag_present, uint8_t * count)
            NFC_RW_LED_POUT &= ~NFC_RW_LED_BIT;
            NFC_P2P_LED_POUT &= ~NFC_P2P_LED_BIT;
            NFC_CE_LED_POUT &= ~NFC_CE_LED_BIT;
-           tag_present = false;
+           *tag_present = false;
         }
 
     }
@@ -149,7 +162,7 @@ void nfc_tag_detect(bool * tag_present, uint8_t * count)
             T2T_init(g_ui8TxBuffer,256);
             T5T_init(g_ui8TxBuffer,256);
             //turn 7 segment on to 0
-            segmentWrite('0');
+            //segmentWrite('0');
            // msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
             //msg7Seg.payloadlen = strlen(msg7Seg.payload);
             //rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msg7Seg);
@@ -169,12 +182,8 @@ void nfc_tag_detect(bool * tag_present, uint8_t * count)
         Serial_processCommand();
     }
 
-    //transmitString("END NFC \n\r");
-    //transmitInt(SW_Timer_1.elapsedCycles);
-    //transmitString("\n\r");
-    //SW_Timer_1.elapsedCycles = 0;
-       Serial_processCommand();
-
+    Serial_processCommand();
+    return ret_tag_type;
 }
 
 void irInit()
