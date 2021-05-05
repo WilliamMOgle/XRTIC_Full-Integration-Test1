@@ -55,7 +55,7 @@
 #define GRIPPER_ENABLE  0
 #define MQTT_ENABLE     1
 #define SEG7_ENABLE     0
-#define TELEM_ENABLE    0
+#define TELEM_ENABLE    1
 #define REACT_ENABLE    0
 
 //ROVER DEFINES

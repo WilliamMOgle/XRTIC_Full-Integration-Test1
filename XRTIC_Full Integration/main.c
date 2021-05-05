@@ -20,15 +20,22 @@ volatile int publishID = 0;
 int main(int argc, char** argv)
 {
 
+
     //set up all mqtt message struct types
-    struct sevSegData_t sevSeg;
-    struct sensorRFIDData_t sensorRFID;
-    struct sensorBumpData_t sensorBump;
-    struct sensorIRData_t sensorIR;
-    struct motorData_t motor;
+    struct sevSegData_t sevSeg = {0, 0, 0, 0, 0, 0, 0, 0};
+    struct sensorRFIDData_t sensorRFID = {0, "", ""};
+    struct sensorBumpData_t sensorBump = {0, 0, 0, 0, 0, 0};
+    struct sensorIRData_t sensorIR = {0, 0, 0};
+    struct motorData_t motor = {0, 0, 0, 0};
+
 
     //format of action output
     //{"m":"message"}
+    /*
+    msgFeedback.payload = "{\"m\":\"[INSERT TEXT HERE]\"}";
+    msgFeedback.payloadlen = strlen(msgFeedback.payload);
+    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/Action", &msgFeedback);
+    */
 
     // Initialize MCU
     MCU_init();
@@ -42,6 +49,9 @@ int main(int argc, char** argv)
     initSWTimer2();
     updateSW1WaitCycles(30000);
     //updateSW2WaitCycles(1000);
+
+    displayBanner();
+
 
 #if ROVER_ENABLE
     roverInit();
@@ -101,7 +111,7 @@ int main(int argc, char** argv)
     bool robonav_on = false;
 #endif
 
-    displayBanner();
+
 
     //message fore 7 segment
     //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
@@ -130,45 +140,46 @@ int main(int argc, char** argv)
         {
             int tempMax = MAX_MESSAGE_SIZE;
 
-            //char* jsonTextMotor = malloc(tempMax * sizeof(char));
             //TRANSMIT ROVER
-            convertMotorToJSONString(motor, msgFeedback.payload, tempMax);
+            char* jsonTextMotor = malloc(tempMax * sizeof(char));
+            convertMotorToJSONString(motor, jsonTextMotor, tempMax);
+            msgFeedback.payload = jsonTextMotor;
             msgFeedback.payloadlen = strlen(msgFeedback.payload);
             rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/Motor", &msgFeedback);
+            free(jsonTextMotor);
 
-
-            //delete sendData;
             //TRANSMIT BUMP
+            char* jsonTextBump= malloc(tempMax * sizeof(char));
+            convertSensorBumpToJSONString(sensorBump, jsonTextBump, tempMax);
+            msgFeedback.payload = jsonTextBump;
+            msgFeedback.payloadlen = strlen(msgFeedback.payload);
+            rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/BumpSensor", &msgFeedback);
+            free(jsonTextBump);
 
             //TRANSMIT IR
+            char* jsonTextIR = malloc(tempMax * sizeof(char));
+            convertIRSensorToJSONString(sensorIR, jsonTextIR, tempMax);
+            msgFeedback.payload = jsonTextIR;
+            msgFeedback.payloadlen = strlen(msgFeedback.payload);
+            rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/IRSensor", &msgFeedback);
+            free(jsonTextIR);
 
             //TRANSMIT RFID
+            char* jsonTextRFID = malloc(tempMax * sizeof(char));
+            convertSensorRFIDToJSONString(sensorRFID, jsonTextRFID, tempMax);
+            msgFeedback.payload = jsonTextRFID;
+            msgFeedback.payloadlen = strlen(msgFeedback.payload);
+            rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgFeedback);
+            free(jsonTextRFID);
 
-            //TRANSMIT ROBONAV ON
 
-            //test
-
-
-
-            //SERVO DEMO
-            //Comment either the toggle function
-            //OR
-            //Everything else in this if-statement
-            //for a demonstration
-
-            //toggleOpenClose(&servoSettings);
-            //openServo(&servoSettings);
-
-            /*if(!countDir)
-                degree -= 5;
-            else
-                degree += 5;
-            if(degree >= 145 || degree <= 80)
-            {
-                countDir = !countDir;
-            }
-            moveServoToDegree(degree, &servoSettings);*/
-            //END SERVO DEMO
+            //transmit 7seg
+            char* jsonTextSevSeg = malloc(tempMax * sizeof(char));
+            convertSevSegToJSONString(sevSeg, jsonTextSevSeg, tempMax);
+            msgFeedback.payload = jsonTextSevSeg;
+            msgFeedback.payloadlen = strlen(msgFeedback.payload);
+            rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msgFeedback);
+            free(jsonTextSevSeg);
         }
         //END NON-BLOCKING TELEMETRY SEND CHECK
 #endif
