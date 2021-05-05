@@ -61,8 +61,6 @@ struct controllerData_t {
 
 struct controllerData_t parseControllerJSON(char *jsonString, int maxTokens);
 
-void convertSimpleDataToJSONString(struct simpleData_t simpleData,
-                                   char *returnedArray, int maxChars);
 
 void convertSevSegToJSONString(struct sevSegData_t sevSegData,
                                    char *returnedArray, int maxChars);
