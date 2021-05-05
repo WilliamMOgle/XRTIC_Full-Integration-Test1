@@ -41,69 +41,44 @@ void armPortSixInterrupts()
     NVIC->ISER[1] = 0x00000100;  // enable interrupt 40 in NVIC
 }
 
-void PORT6_IRQHandler(void){
-// Add code to measure total time in ISR as part of Lab 21
-    if(P6->IFG & 0x04)
-    {
-      uint32_t start = SysTick->VAL;
 
-      *PTxChan = OPT3101_GetMeasurement(Pdistances,Pamplitudes);
-      //P6->IFG = 0x00;            // clear all flags
-
-      ISRTime = ((start-SysTick->VAL)&0x00FFFFFF)/48; // 1us
-      ISRPeriod = ((ISRLast-start)&0x00FFFFFF)/48;   // 1us
-      ISRLast = start;
-      GPIO_clearInterruptFlag(GPIO_PORT_P6, GPIO_PIN2);
-    }
-
-    if(P6->IFG & 0x01)
-    {
-        uint32_t status;
-
-        status = GPIO_getEnabledInterruptStatus(TRF_IRQ_PORT);
-        GPIO_clearInterruptFlag(TRF_IRQ_PORT, status);
-
-        if(status & TRF_IRQ)
-        {
-            g_ui8IrqFlag = 0x01;
-        }
-    }
-}
 
 void negativeReaction()
 {
     rotateRightForTimeComp(NEG_REACTION_SPEED, 1000);
 }
 
-Tag_Type nfc_tag_detect(bool * tag_present, uint8_t * count)
+void nfc_tag_detect(bool * tag_present, Tag_Type * tag_type)
 {
-    //transmitString("In NFC");transmitNewLine();
-    Tag_Type ret_tag_type = NO_TAG;
+    static int count = 0;
+    ///transmitString("In NFC");transmitNewLine();
+    //Tag_Type ret_tag_type = NO_TAG;
     eTempNFCState = NFC_run();
 
     if(eTempNFCState == NFC_DATA_EXCHANGE_PROTOCOL)
     {
 
-        if(*count != 2)
+        if(count != 2)
         {
-            *count = 2;
+            count = 2;
         }
-        transmitString("in exchange protocol\n\r");
+        //transmitString("in exchange protocol\n\r");
         if(NFC_RW_getModeStatus(&sRWMode,&sRWBitrate))
         {
             NFC_RW_LED_POUT |= NFC_RW_LED_BIT;
-
+            transmitString("getModeStatus\n\r");
             if( sRWMode.bits.bNfcA == 1)
             {
                 if(NFC_A_getSAK() == 0x00)
                 {
+                    //transmitString("getSAK\n\r");
                     // T2T Tag State Machine
-                    if(tag_present == false)
+                    if(*tag_present == false)
                     {
                         turnOn_LaunchpadLED2_green();
                         transmitString("Type 2 Tag Detect\n\r");
                         *tag_present = true;
-                        ret_tag_type = NEGATIVE_TAG;
+                        *tag_type = NEGATIVE_TAG;
                         //turn 7 segment on to 0
                         //segmentWrite('b');
                        // msg7Seg.payload = "{\"sA\":0,\"sB\":0,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":1,\"sDP\":0}";
@@ -139,11 +114,12 @@ Tag_Type nfc_tag_detect(bool * tag_present, uint8_t * count)
             else if(sRWMode.bits.bISO15693 == 1)
             {
                 // T5T Tag State Machine
+                //transmitString("ISO15693\n\r");
                 if(*tag_present == false)
                 {
                     turnOn_LaunchpadLED2_blue();
                     transmitString("Type 5 Tag Detect\n\r");
-                    ret_tag_type = POSITIVE_TAG;
+                    *tag_type = POSITIVE_TAG;
                     //turn 7 segment on to 0
                     //segmentWrite('a');
                     *tag_present = true;
@@ -168,23 +144,25 @@ Tag_Type nfc_tag_detect(bool * tag_present, uint8_t * count)
     }
     else
     {
+        //transmitString("no tag detect");transmitNewLine();
+        //transmitString("count: ");transmitInt(count);transmitNewLine();
         // Clear LEDs (RX & TX)
-        if(*count != 0)
-            *count--;
+        if(count > 0)
+            count--;
 
-        if(*count == 0)
+        if(count <= 0)
         {
            turnOff_LaunchpadLED1();
            turnOff_LaunchpadLED2_red();//LaunchpadLED2_green
            turnOff_LaunchpadLED2_green();
            turnOff_LaunchpadLED2_blue();
 
+           *tag_type = NO_TAG;
            NFC_RW_LED_POUT &= ~NFC_RW_LED_BIT;
            NFC_P2P_LED_POUT &= ~NFC_P2P_LED_BIT;
            NFC_CE_LED_POUT &= ~NFC_CE_LED_BIT;
            *tag_present = false;
         }
-
     }
 
     // Update Current State if it has changed.
@@ -225,15 +203,15 @@ Tag_Type nfc_tag_detect(bool * tag_present, uint8_t * count)
     }
 
     Serial_processCommand();
-    return ret_tag_type;
+    //return ret_tag_type;
 }
 
 void irInit()
 {
     //SENSOR SET UP
 
-    SysTick->LOAD = 0x00FFFFFF;           // maximum reload value
-    SysTick->CTRL = 0x00000005;           // enable SysTick with no interrupts
+    //SysTick->LOAD = 0x00FFFFFF;           // maximum reload value
+    //SysTick->CTRL = 0x00000005;           // enable SysTick with no interrupts
     I2CB1_Init(30); // baud rate = 12MHz/30=400kHz
     OPT3101_Init();
     OPT3101_Setup();
@@ -242,6 +220,44 @@ void irInit()
     StartTime = SysTick->VAL;
     OPT3101_StartMeasurement();
     //END IR INIT
+}
+
+void PORT6_IRQHandler(void){
+// Add code to measure total time in ISR as part of Lab 21
+    if(P6->IFG & 0x04)
+    {
+      //uint32_t start = SysTick->VAL;
+
+      *PTxChan = OPT3101_GetMeasurement(Pdistances,Pamplitudes);
+      //P6->IFG = 0x00;            // clear all flags
+
+      GPIO_clearInterruptFlag(GPIO_PORT_P6, GPIO_PIN2);
+    }
+
+    if(P6->IFG & 0x01)
+    {
+        uint32_t status;
+
+        status = GPIO_getEnabledInterruptStatus(TRF_IRQ_PORT);
+        GPIO_clearInterruptFlag(TRF_IRQ_PORT, status);
+
+        if(status & TRF_IRQ)
+        {
+            g_ui8IrqFlag = 0x01;
+        }
+    }
+}
+
+void SysTick_Handler(void) {
+    MilliTimer++;
+}
+
+void sysTickInit()
+{
+    SysTick_registerInterrupt(SysTick_Handler);
+    SysTick_setPeriod(48000);
+    SysTick_enableModule();
+    SysTick_enableInterrupt();
 }
 
 void roboNav()

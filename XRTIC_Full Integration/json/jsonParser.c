@@ -64,7 +64,7 @@ void convertSevSegToJSONString(struct sevSegData_t sevSegData,
 void convertSensorRFIDToJSONString(struct sensorRFIDData_t sensorRFIDData,
                                    char *returnedArray, int maxChars)
 {
-    snprintf(returnedArray, maxChars, "{\"detect\":%d,\"type\":%s,\"effect\":%s}",
+    snprintf(returnedArray, maxChars, "{\"detect\":%d,\"type\":\"%s\",\"effect\":\"%s\"}",
              sensorRFIDData.detect, sensorRFIDData.type, sensorRFIDData.effect);
 
     returnedArray[maxChars] = '\0';

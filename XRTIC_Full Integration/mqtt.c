@@ -104,8 +104,6 @@ void setUpMQTT(_i32 retVal, unsigned char *buf, unsigned char *readbuf, int rc)
     // Generate 32bit unique ID from TLV Random Number and MAC Address
     generateUniqueID();
 
-
-
     NewNetwork(&n);
     rc = ConnectNetwork(&n, MQTT_BROKER_SERVER, MQTT_BROKER_PORT);
 
@@ -208,6 +206,8 @@ void messageArrived(MessageData* data) {
 
     transmitString((unsigned char*)buf);
     transmitString("\n\r");
+
+    //free(buf);
 
     return;
 }

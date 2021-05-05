@@ -71,9 +71,6 @@ policies, either expressed or implied, of the FreeBSD Project.
 uint32_t *PTxChan;
 uint32_t *Pdistances;
 uint32_t *Pamplitudes;
-uint32_t ISRTime; // bus cycle time (1us)
-uint32_t ISRLast;    // last time (20.83ns)
-uint32_t ISRPeriod;
 
 
 /**

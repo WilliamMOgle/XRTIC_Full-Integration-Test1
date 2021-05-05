@@ -24,6 +24,7 @@
 #include "systick.h"
 
 typedef struct Timer Timer;
+unsigned long MilliTimer;
 
 struct Timer {
 	unsigned long systick_period;

@@ -20,25 +20,9 @@ volatile int publishID = 0;
 int main(int argc, char** argv)
 {
 
-
-    //set up all mqtt message struct types
-    struct sevSegData_t sevSeg = {0, 0, 0, 0, 0, 0, 0, 0};
-    struct sensorRFIDData_t sensorRFID = {0, "", ""};
-    struct sensorBumpData_t sensorBump = {0, 0, 0, 0, 0, 0};
-    struct sensorIRData_t sensorIR = {0, 0, 0};
-    struct motorData_t motor = {0, 0, 0, 0};
-
-
-    //format of action output
-    //{"m":"message"}
-    /*
-    msgFeedback.payload = "{\"m\":\"[INSERT TEXT HERE]\"}";
-    msgFeedback.payloadlen = strlen(msgFeedback.payload);
-    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/Action", &msgFeedback);
-    */
-
     // Initialize MCU
     MCU_init();
+    sysTickInit();
     MAP_WDT_A_holdTimer();
     initialize_LaunchpadLEDs();
     initUART();
@@ -47,15 +31,22 @@ int main(int argc, char** argv)
     Init_Timer32_0(TIMER32_INIT_COUNT, CONTINUOUS); //0.1ms per count
     initSWTimer1();
     initSWTimer2();
-    updateSW1WaitCycles(30000);
+    updateSW1WaitCycles(10000);
     //updateSW2WaitCycles(1000);
 
     displayBanner();
 
+    //set up all mqtt message struct types
+    struct sevSegData_t sevSeg = {0, 0, 0, 0, 0, 0, 0, 0};
+    struct sensorRFIDData_t sensorRFID = {0, "none", "none"};
+    struct sensorBumpData_t sensorBump = {0, 0, 0, 0, 0, 0};
+    struct sensorIRData_t sensorIR = {0, 0, 0};
+    struct motorData_t motor = {0, 0, 0, 0};
 
 #if ROVER_ENABLE
     roverInit();
     bool rover_ctrl = true;
+    speed = 300;
 #endif
 
 #if BUMP_ENABLE
@@ -85,34 +76,46 @@ int main(int argc, char** argv)
     unsigned char readbuf[100];
     _i32 retVal = -1;
 
+
+
+    button_two_interrupt_init();
     retVal = initializeAppVariables();
     ASSERT_ON_ERROR(retVal);
     setUpMQTT(retVal, buf, readbuf, rc);
-    button_two_interrupt_init();
 
     MQTTMessage msgFeedback;
     MQTTMessageInit(&msgFeedback);
 
+    //format of action output
+    //{"m":"message"}
+    /*
+    msgFeedback.payload = "{\"m\":\"[INSERT TEXT HERE]\"}";
+    msgFeedback.payloadlen = strlen(msgFeedback.payload);
+    rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/Action", &msgFeedback);
+    */
 #endif
 
 #if IR_ENABLE
     uint32_t channel = 1;
     irInit();
     armPortSixInterrupts();
+
+    //IR sensor needs to have some delay
+    //between readings
+    initSWTimer2();
+    updateSW2WaitCycles(1000);
 #endif
 
 #if GRIPPER_ENABLE
     Servo180 servoSettings;
-    servo180InitArgs(&servoSettings,SYS_CLK,140,80,GPIO_PORT_P8,GPIO_PIN2);
+    servo180InitArgs(&servoSettings,SYS_CLK,85,30,GPIO_PORT_P8,GPIO_PIN2);
     closeServo(&servoSettings);
 #endif
 
 #if (ROBONAV_ENABLE & MQTT_ENABLE)
-    bool robonav_on = false;
+
 #endif
-
-
-
+    bool robonav_on = false;
     //message fore 7 segment
     //msg7Seg.payload = "{\"sA\":1,\"sB\":1,\"sC\":1,\"sD\":1,\"sE\":1,\"sF\":1,\"sG\":0,\"sDP\":0}";
     //msg7Seg.payloadlen = strlen(msg7Seg.payload);
@@ -125,6 +128,8 @@ int main(int argc, char** argv)
 
     MCU_delayMillisecond(100);
 
+
+
     while(1)
     {
 #if ROVER_ENABLE
@@ -132,6 +137,7 @@ int main(int argc, char** argv)
         checkEndCond();
         updateRoverState();
         compensator();
+
 #endif
 
 #if TELEM_ENABLE
@@ -140,39 +146,71 @@ int main(int argc, char** argv)
         {
             int tempMax = MAX_MESSAGE_SIZE;
 
+#if ROVER_ENABLE
             //TRANSMIT ROVER
-            char* jsonTextMotor = malloc(tempMax * sizeof(char));
+            transmitString("transmitRover\n\r");
+            motor.rpmM1 = calcCurrentRPM(&left_wheel_data);
+            motor.rpmM2 = calcCurrentRPM(&right_wheel_data);
+            motor.dirM1 = false;
+            motor.dirM2 = false;
+            transmitString("a\n\r");
+            char jsonTextMotor[tempMax]; //= //malloc(tempMax * sizeof(char));
+            transmitString("b\n\r");
             convertMotorToJSONString(motor, jsonTextMotor, tempMax);
+            transmitString("c\n\r");
             msgFeedback.payload = jsonTextMotor;
             msgFeedback.payloadlen = strlen(msgFeedback.payload);
             rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/Motor", &msgFeedback);
-            free(jsonTextMotor);
-
+            transmitString("d\n\r");
+            //free(jsonTextMotor);
+#endif
+#if BUMP_ENABLE
             //TRANSMIT BUMP
-            char* jsonTextBump= malloc(tempMax * sizeof(char));
+            char jsonTextBump[tempMax];//= malloc(tempMax * sizeof(char));
             convertSensorBumpToJSONString(sensorBump, jsonTextBump, tempMax);
             msgFeedback.payload = jsonTextBump;
             msgFeedback.payloadlen = strlen(msgFeedback.payload);
             rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/BumpSensor", &msgFeedback);
-            free(jsonTextBump);
-
+            //free(jsonTextBump);
+#endif
+#if IR_ENABLE
             //TRANSMIT IR
-            char* jsonTextIR = malloc(tempMax * sizeof(char));
+
+            char jsonTextIR[tempMax];// = malloc(tempMax * sizeof(char));
             convertIRSensorToJSONString(sensorIR, jsonTextIR, tempMax);
             msgFeedback.payload = jsonTextIR;
             msgFeedback.payloadlen = strlen(msgFeedback.payload);
             rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/IRSensor", &msgFeedback);
-            free(jsonTextIR);
-
+            //free(jsonTextIR);
+#endif
+#if NFC_ENABLE
             //TRANSMIT RFID
-            char* jsonTextRFID = malloc(tempMax * sizeof(char));
+            //Set RFID struct for MQTT messaging
+            switch(tag_type)
+            {
+            case POSITIVE_TAG:  sensorRFID.detect = true;
+                                sensorRFID.effect = "Speed Boost";
+                                sensorRFID.type = "Type 5";
+                                break;
+            case NEGATIVE_TAG:  sensorRFID.detect = true;
+                                sensorRFID.effect = "Crash!";
+                                sensorRFID.type = "Type 2";
+                                break;
+            case NO_TAG:        sensorRFID.detect = false;
+                                sensorRFID.effect = "none";
+                                sensorRFID.type = "none";
+                                break;
+            default:            break;
+            }
+
+            char jsonTextRFID[tempMax];// = malloc(tempMax * sizeof(char));
             convertSensorRFIDToJSONString(sensorRFID, jsonTextRFID, tempMax);
             msgFeedback.payload = jsonTextRFID;
             msgFeedback.payloadlen = strlen(msgFeedback.payload);
             rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/RFID", &msgFeedback);
             free(jsonTextRFID);
-
-
+#endif
+#if SEG7_ENABLE
             //transmit 7seg
             char* jsonTextSevSeg = malloc(tempMax * sizeof(char));
             convertSevSegToJSONString(sevSeg, jsonTextSevSeg, tempMax);
@@ -180,12 +218,13 @@ int main(int argc, char** argv)
             msgFeedback.payloadlen = strlen(msgFeedback.payload);
             rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/SevenSegmentDisplay", &msgFeedback);
             free(jsonTextSevSeg);
+#endif
         }
         //END NON-BLOCKING TELEMETRY SEND CHECK
 #endif
 
-#if (NFC_ENABLE & ~MQTT_ENABLE)
-        tag_type = nfc_tag_detect(&tag_present, &count);
+#if (NFC_ENABLE & (~MQTT_ENABLE & 0x01))
+        nfc_tag_detect(&tag_present/*, &count*/, &tag_type);
 
         transmitString("Tag type: ");
         switch(tag_type)
@@ -196,7 +235,7 @@ int main(int argc, char** argv)
         default: break;
         }
 
-#if ROVER_ENABLE
+/*#if ROVER_ENABLE
         switch(tag_type)
         {
         case POSITIVE_TAG: break;
@@ -204,33 +243,49 @@ int main(int argc, char** argv)
         case NO_TAG: break;
         default: break;
         }
-#endif
+#endif*/
 
 #endif
 
 #if (NFC_ENABLE & MQTT_ENABLE)
         //NFC ENABLE STATE MACHINE
-        if(recMQTTData.newData)
+        /*if(recMQTTData.newData)
         {
             if(recMQTTData.pressed && !strcmp(recMQTTData.key, "space"))
             {
                 recMQTTData.nfcEnabled = true;
                 recMQTTData.newData = false;
+                transmitString("nfc enabled");transmitNewLine();
             }
             else if(!recMQTTData.pressed && !strcmp(recMQTTData.key, "space"))
             {
                 recMQTTData.nfcEnabled = false;
                 recMQTTData.newData = false;
                 //eTempNFCState == NFC_PROTOCOL_ACTIVATION;
+                transmitString("nfc disabled");transmitNewLine();
             }
-        }
+        }*/
         //END NFC ENABLE STATE MACHINE
 
-        if(recMQTTData.nfcEnabled)
-        {
-            tag_type = nfc_tag_detect(&tag_present, &count);
-        }
+        //if(recMQTTData.nfcEnabled)
+        //{
+            nfc_tag_detect(&tag_present/*, &count*/, &tag_type);
+        //}
+        //else
+        //{
+        //    tag_type = NO_TAG;
+        //    tag_present = false;
+        //    NFC_RW_LED_POUT &= ~NFC_RW_LED_BIT;
+       // }
 
+        transmitString("Tag type: ");
+        switch(tag_type)
+        {
+        case POSITIVE_TAG: transmitString("pos tag\n\r"); break;
+        case NEGATIVE_TAG: transmitString("neg tag\n\r"); break;
+        case NO_TAG: transmitString("no tag\n\r"); break;
+        default: break;
+        }
 
 
 #if (ROVER_ENABLE & REACT_ENABLE)
@@ -287,6 +342,7 @@ int main(int argc, char** argv)
 #endif
 
 #if GRIPPER_ENABLE
+
         //GRIPPER STATE MACHINE
         if(recMQTTData.newData)
         {
@@ -311,14 +367,14 @@ int main(int argc, char** argv)
         //ROVER STATE MACHINE - BEGIN
         switch(speed_state)
         {
-            case SPEED_INCREASE: speed += 10; /*transmitString("SPEED_INCREASE\n\r");*/break;
-            case SPEED_DECREASE: speed -= 10; /*transmitString("SPEED_DECREASE\n\r");*/break;
+            case SPEED_INCREASE: speed += 100; /*transmitString("SPEED_INCREASE\n\r");*/break;
+            case SPEED_DECREASE: speed -= 100; /*transmitString("SPEED_DECREASE\n\r");*/break;
             case SPEED_HOLD: /*transmitString("SPEED_HOLD\n\r");*/break;
             default: break;
         }
         //transmitInt(speed);transmitNewLine();
-        if(!rover_ctrl)
-        {
+       // if(!rover_ctrl)
+        //{
             if(recMQTTData.newData)
             {
                 if(recMQTTData.pressed)
@@ -328,13 +384,13 @@ int main(int argc, char** argv)
                     {
                         //transmitInt(speed);transmitNewLine();
                         speed_state = SPEED_INCREASE;
-                        //recMQTTData.newData = false;
+                        recMQTTData.newData = false;
                     }
                     else if(!strcmp(recMQTTData.key,"d"))
                     {
                         //transmitInt(speed);transmitNewLine();
                         speed_state = SPEED_DECREASE;
-                        //recMQTTData.newData = false;
+                        recMQTTData.newData = false;
                     }
                     else if(!strcmp(recMQTTData.key,"up"))
                     {
@@ -360,6 +416,58 @@ int main(int argc, char** argv)
                         recMQTTData.newData = false;
                         segmentWrite('4');
                     }
+
+                    else if(!strcmp(recMQTTData.key, "rn"))
+                   {
+                        transmitString("robonav enabled");transmitNewLine();
+                       robonav_on = true;
+                       recMQTTData.newData = false;
+                   }
+
+     /*
+#if (IR_ENABLE & BUMP_ENABLE & ROBONAV_ENABLE & MQTT_ENABLE & ROVER_ENABLE)
+        //enables with "robonav"
+
+
+            else if(!strcmp(recMQTTData.key, "rn"))
+            {
+                robonav_on  = false;
+                recMQTTData.newData = false;
+                hardStop();
+                //eTempNFCState == NFC_PROTOCOL_ACTIVATION;
+            }
+        }
+
+        if(robonav_on)
+            roboNav();
+#endif
+       */
+
+/*
+#if (IR_ENABLE & BUMP_ENABLE & ROBONAV_ENABLE & MQTT_ENABLE & ROVER_ENABLE)
+        //enables with "robonav"
+
+        if(recMQTTData.newData)
+        {
+            if(recMQTTData.pressed && !strcmp(recMQTTData.key, "rn"))
+            {
+                robonav_on = true;
+                recMQTTData.newData = false;
+            }
+            else if(!recMQTTData.pressed && !strcmp(recMQTTData.key, "rn"))
+            {
+                robonav_on  = false;
+                recMQTTData.newData = false;
+                hardStop();
+                //eTempNFCState == NFC_PROTOCOL_ACTIVATION;
+            }
+        }
+
+        if(robonav_on)
+            roboNav();
+#endif*/
+
+
                 }
                 else //released
                 {
@@ -405,59 +513,127 @@ int main(int argc, char** argv)
                     default: speed_state = SPEED_HOLD; break;
                     }
 
-                    //recMQTTData.newData = false;
+                    if(!strcmp(recMQTTData.key, "rn"))
+                    {
+                        transmitString("robonav disabled");transmitNewLine();
+                        robonav_on  = false;
+                        recMQTTData.newData = false;
+                        hardStop();
+                        //eTempNFCState == NFC_PROTOCOL_ACTIVATION;
+                    }
+
+                    recMQTTData.newData = false;
                 }
                 //segmentWrite('F');
-                recMQTTData.newData = false;
-            }
-        }
 
+            }
+      //  }
+
+#endif
+
+#if (IR_ENABLE & BUMP_ENABLE & ROBONAV_ENABLE & MQTT_ENABLE & ROVER_ENABLE)
+        if(robonav_on)
+            roboNav();
 #endif
 
 #if BUMP_ENABLE
         //BUMP SENSOR CHECKS
         if(bumpSensorPressed(BUMP0))
-            transmitString("Bump 0 Pressed!\n\r");
-        if(bumpSensorPressed(BUMP1))
-            transmitString("Bump 1 Pressed!\n\r");
-        if(bumpSensorPressed(BUMP2))
-            transmitString("Bump 2 Pressed!\n\r");
-        if(bumpSensorPressed(BUMP3))
-            transmitString("Bump 3 Pressed!\n\r");
-        if(bumpSensorPressed(BUMP4))
-            transmitString("Bump 4 Pressed!\n\r");
-        if(bumpSensorPressed(BUMP5))
-            transmitString("Bump 5 Pressed!\n\r");
-#endif
-
-#if IR_ENABLE
-        //if()
-        OPT3101_StartMeasurementChannel(channel);
-        if(channel < 2)
         {
-            channel++;
+            sensorBump.b0 = true;
+            transmitString("Bump 0 Pressed!\n\r");
         }
         else
         {
-            channel = 0;
+            sensorBump.b0 = false;
         }
-        OPT3101_GetMeasurement(Distances,Amplitudes);
+        if(bumpSensorPressed(BUMP1))
+        {
+            sensorBump.b1 = true;
+            transmitString("Bump 1 Pressed!\n\r");
+        }
+        else
+        {
+            sensorBump.b1 = false;
+        }
+        if(bumpSensorPressed(BUMP2))
+        {
+            sensorBump.b2 = true;
+            transmitString("Bump 2 Pressed!\n\r");
+        }
+        else
+        {
+            sensorBump.b2 = false;
+        }
+        if(bumpSensorPressed(BUMP3))
+        {
+            sensorBump.b3 = true;
+            transmitString("Bump 3 Pressed!\n\r");
+        }
+        else
+        {
+            sensorBump.b3 = false;
+        }
+        if(bumpSensorPressed(BUMP4))
+        {
+            sensorBump.b4 = true;
+            transmitString("Bump 4 Pressed!\n\r");
+        }
+        else
+        {
+            sensorBump.b4 = false;
+        }
+        if(bumpSensorPressed(BUMP5))
+        {
+            sensorBump.b5 = true;
+            transmitString("Bump 5 Pressed!\n\r");
+        }
+        else
+        {
+            sensorBump.b5 = false;
+        }
+#endif
 
-        transmitString("Left: ");
-        transmitInt(Distances[0]);
-        transmitString("mm | ");
-        transmitString("Center: ");
-        transmitInt(Distances[1]);
-        transmitString("mm | ");
-        transmitString("Right: ");
-        transmitInt(Distances[2]);
-        transmitString("mm\n\r");
+#if (IR_ENABLE & (~NFC_ENABLE & 0x01))
+
+        if(SW2TimerRollover())
+        {
+            transmitString("IR | ");
+            OPT3101_StartMeasurementChannel(channel);
+            if(channel < 2)
+            {
+                channel++;
+            }
+            else
+            {
+                channel = 0;
+            }
+            OPT3101_GetMeasurement(Distances,Amplitudes);
+
+            transmitString("CH: ");
+            transmitInt(channel);
+            transmitString(" | ");
+            transmitString("Left: ");
+            transmitInt(Distances[0]);
+            transmitString("mm | ");
+            transmitString("Center: ");
+            transmitInt(Distances[1]);
+            transmitString("mm | ");
+            transmitString("Right: ");
+            transmitInt(Distances[2]);
+            transmitString("mm\n\r");
+
+            sensorIR.left = Distances[0];
+            sensorIR.center = Distances[1];
+            sensorIR.right = Distances[2];
+
+        }
 
 #endif
 
 #if (IR_ENABLE & NFC_ENABLE)
         //MINIMAL SENSOR STUFF
-        if(!tag_present)
+        if(SW2TimerRollover())
         {
             OPT3101_StartMeasurementChannel(channel);
             if(channel < 2)
@@ -479,34 +655,17 @@ int main(int argc, char** argv)
             transmitString("Right: ");
             transmitInt(Distances[2]);
             transmitString("mm\n\r");
+
+            sensorIR.left = Distances[0];
+            sensorIR.center = Distances[1];
+            sensorIR.right = Distances[2];
+
         }
         //END MINIMAL SENSOR STUFF
 #endif
 
-#if (IR_ENABLE & BUMP_ENABLE & ROBONAV_ENABLE & MQTT_ENABLE & ROVER_ENABLE)
-        //enables with "robonav"
 
-        if(recMQTTData.newData)
-        {
-            if(recMQTTData.pressed && !strcmp(recMQTTData.key, "rn"))
-            {
-                robonav_on = true;
-                recMQTTData.newData = false;
-            }
-            else if(!recMQTTData.pressed && !strcmp(recMQTTData.key, "rn"))
-            {
-                robonav_on  = false;
-                recMQTTData.newData = false;
-                hardStop();
-                //eTempNFCState == NFC_PROTOCOL_ACTIVATION;
-            }
-        }
-
-        if(robonav_on)
-            roboNav();
-#endif
-
-#if (IR_ENABLE & BUMP_ENABLE & ROBONAV_ENABLE & ROVER_ENABLE)
+#if (IR_ENABLE & BUMP_ENABLE & ROBONAV_ENABLE & ROVER_ENABLE & (~MQTT_ENABLE & 0x01))
         roboNav();
 #endif
         MCU_delayMillisecond(10);
@@ -1190,7 +1349,7 @@ void NFC_configuration(void)
 
     // Milliseconds the NFC stack will be in listen mode
 //<<<<<<< HEAD
-    g_ui16ListenTime = 10;//500;
+    g_ui16ListenTime = 100;//500;
 //=======
 
 //>>>>>>> branch 'master' of https://github.com/MattB99/XRTIC_Full_Integration.git
@@ -1879,13 +2038,6 @@ void EusciA0_ISR(void)
 /*
  * ASYNCHRONOUS EVENT HANDLERS -- Start
  */
-
-
-
-
-
-
-
 
 /*
  * Port 1 interrupt handler. This handler is called whenever the switch attached

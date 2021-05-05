@@ -145,7 +145,6 @@ void NFC_setListenTime(uint16_t ui16ListenTime)
 //*****************************************************************************
 tNfcState NFC_run(void)
 {
-    transmitString("NFC Run");transmitNewLine();
 	tNfcState sReturnNfcState;
 	uint8_t ui8PrevState;
 
@@ -247,7 +246,7 @@ tNfcState NFC_run(void)
 //*****************************************************************************
 tNfcState NFC_pollStateMachine(void)
 {
-    transmitString("NFC_pollStateMachine");transmitNewLine();
+   // transmitString("NFC_pollStateMachine");transmitNewLine();
 #if (NFC_PEER_2_PEER_INITIATOR_ENABLED || NFC_READER_WRITER_ENABLED)
 	tTRF79x0_IRQFlag eTrfIrqStatus = IRQ_STATUS_IDLE;
 	tTRF79x0_Status sTRF79x0Status;
