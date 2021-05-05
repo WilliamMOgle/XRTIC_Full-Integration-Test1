@@ -20,6 +20,16 @@ volatile int publishID = 0;
 int main(int argc, char** argv)
 {
 
+    //set up all mqtt message struct types
+    struct sevSegData_t sevSeg;
+    struct sensorRFIDData_t sensorRFID;
+    struct sensorBumpData_t sensorBump;
+    struct sensorIRData_t sensorIR;
+    struct motorData_t motor;
+
+    //format of action output
+    //{"m":"message"}
+
     // Initialize MCU
     MCU_init();
     MAP_WDT_A_holdTimer();
@@ -69,11 +79,9 @@ int main(int argc, char** argv)
     setUpMQTT(retVal, buf, readbuf, rc);
     button_two_interrupt_init();
 
-    MQTTMessage msgRFID;
-    MQTTMessageInit(&msgRFID);
+    MQTTMessage msgFeedback;
+    MQTTMessageInit(&msgFeedback);
 
-    MQTTMessage msg7Seg;
-    MQTTMessageInit(&msg7Seg);
 #endif
 
 #if IR_ENABLE
@@ -118,8 +126,16 @@ int main(int argc, char** argv)
         //NON-BLOCKING TELEMETRY SEND CHECK
         if(SW1TimerRollover())
         {
-            //TRANSMIT ROVER
+            int tempMax = MAX_MESSAGE_SIZE;
 
+            //char* jsonTextMotor = malloc(tempMax * sizeof(char));
+            //TRANSMIT ROVER
+            convertMotorToJSONString(motor, msgFeedback.payload, tempMax);
+            msgFeedback.payloadlen = strlen(msgFeedback.payload);
+            rc = MQTTPublish(&hMQTTClient, "XRTIC20/Feedback/Motor", &msgFeedback);
+
+
+            //delete sendData;
             //TRANSMIT BUMP
 
             //TRANSMIT IR

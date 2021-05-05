@@ -2,24 +2,12 @@
 #ifndef JSONPARSER_H_
 #define JSONPARSER_H_
 
-#define CHECKSUM_LOC 0
-
-#define ARM_PAYLOAD_SIZE 256
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 
-
-
-struct simpleData_t
-{
-    int payloadID;
-    int value;
-    bool validData;
-};
 
 struct sevSegData_t {
     bool sA;
@@ -34,6 +22,7 @@ struct sevSegData_t {
 };
 
 struct sensorRFIDData_t {
+    bool detect;
     char* type;
     char* effect;
 };
@@ -48,7 +37,9 @@ struct sensorBumpData_t {
 };
 
 struct sensorIRData_t {
-
+    int left;
+    int center;
+    int right;
 };
 
 struct motorData_t {
@@ -68,8 +59,6 @@ struct controllerData_t {
 
 
 
-struct simpleData_t parseSimpleJSON(char *jsonString, int maxTokens);
-
 struct controllerData_t parseControllerJSON(char *jsonString, int maxTokens);
 
 void convertSimpleDataToJSONString(struct simpleData_t simpleData,
@@ -87,10 +76,9 @@ void convertSensorBumpToJSONString(struct sensorBumpData_t sensorBumpData,
 void convertMotorToJSONString(struct motorData_t MotorData,
                                    char *returnedArray, int maxChars);
 
-char* convertControllerToJSONString(struct controllerData_t controllerData, int maxChars);
+void convertIRSensorToJSONString(struct sensorIRData_t MotorData,
+                                   char *returnedArray, int maxChars);
 
 
-char createChecksum(char *payload);
-bool validateChecksum(char *payload);
 
 #endif /* JSONPARSER_H_ */
