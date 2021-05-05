@@ -30,7 +30,7 @@ void positiveReaction()
 
 void negativeReaction()
 {
-    rotateRightforTimeComp(NEG_REACTION_SPEED, 1000);
+    rotateRightForTimeComp(NEG_REACTION_SPEED, 1000);
 }
 
 Tag_Type nfc_tag_detect(bool * tag_present, uint8_t * count)

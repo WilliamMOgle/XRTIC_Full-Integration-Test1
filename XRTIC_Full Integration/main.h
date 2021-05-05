@@ -71,6 +71,7 @@
 #define BUMP_ROVER_TURN_DEGREES 360;
 #define BUMP_ROVER_BACKWARDS_MM 100;
 
+#define MAX_MESSAGE_SIZE 60;
 
 typedef enum
 {
