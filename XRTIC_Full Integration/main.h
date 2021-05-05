@@ -47,16 +47,16 @@
 
 //---------DEFINES----------
 //system enables
-#define NFC_ENABLE 1
-#define ROVER_ENABLE 1
-#define BUMP_ENABLE 1
-#define IR_ENABLE 1
-#define ROBONAV_ENABLE 1
-#define GRIPPER_ENABLE 1
-#define MQTT_ENABLE 1
-#define SEG7_ENABLE 1
-#define TELEM_ENABLE 1
-#define REACT_ENABLE 1
+#define NFC_ENABLE      0
+#define ROVER_ENABLE    0
+#define BUMP_ENABLE     0
+#define IR_ENABLE       0
+#define ROBONAV_ENABLE  0
+#define GRIPPER_ENABLE  0
+#define MQTT_ENABLE     1
+#define SEG7_ENABLE     0
+#define TELEM_ENABLE    0
+#define REACT_ENABLE    0
 
 //ROVER DEFINES
 #define SYS_CLK 48000000
@@ -124,5 +124,7 @@ void irInit();
 void positiveReaction();
 void negativeReaction();
 Tag_Type nfc_tag_detect(bool*, uint8_t*);
+void armPortSixInterrupts();
+
 
 #endif /* MAIN_H_ */

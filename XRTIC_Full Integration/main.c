@@ -60,6 +60,7 @@ int main(int argc, char** argv)
 
 #if NFC_ENABLE
     NFC_completeInit();
+    armPortSixInterrupts();
 
     g_ui16BytesReceived = 0x00;
     uint8_t count = 2;
@@ -87,6 +88,7 @@ int main(int argc, char** argv)
 #if IR_ENABLE
     uint32_t channel = 1;
     irInit();
+    armPortSixInterrupts();
 #endif
 
 #if GRIPPER_ENABLE
@@ -1866,13 +1868,6 @@ void EusciA0_ISR(void)
 /*
  * ASYNCHRONOUS EVENT HANDLERS -- Start
  */
-
-
-
-
-
-
-
 
 /*
  * Port 1 interrupt handler. This handler is called whenever the switch attached

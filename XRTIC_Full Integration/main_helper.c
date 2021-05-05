@@ -28,6 +28,48 @@ void positiveReaction()
 
 }
 
+void armPortSixInterrupts()
+{
+    // Make P6.2/AUXR be an input for the DATA_RDY signal.
+    P6->DIR &= ~0x04;
+    // Set up P6.2/AUXR to detect low-to-high transitions.
+    P6->IES &= ~0x04;
+    // Clear the P6.2/AUXR interrupt flag.
+    P6->IFG &= ~0x04;
+    P6->IE |= 0x04;  // arm interrupt on P6.2
+    NVIC->IP[40] = 0x40; // priority 2
+    NVIC->ISER[1] = 0x00000100;  // enable interrupt 40 in NVIC
+}
+
+void PORT6_IRQHandler(void){
+// Add code to measure total time in ISR as part of Lab 21
+    if(P6->IFG & 0x04)
+    {
+      uint32_t start = SysTick->VAL;
+
+      *PTxChan = OPT3101_GetMeasurement(Pdistances,Pamplitudes);
+      //P6->IFG = 0x00;            // clear all flags
+
+      ISRTime = ((start-SysTick->VAL)&0x00FFFFFF)/48; // 1us
+      ISRPeriod = ((ISRLast-start)&0x00FFFFFF)/48;   // 1us
+      ISRLast = start;
+      GPIO_clearInterruptFlag(GPIO_PORT_P6, GPIO_PIN2);
+    }
+
+    if(P6->IFG & 0x01)
+    {
+        uint32_t status;
+
+        status = GPIO_getEnabledInterruptStatus(TRF_IRQ_PORT);
+        GPIO_clearInterruptFlag(TRF_IRQ_PORT, status);
+
+        if(status & TRF_IRQ)
+        {
+            g_ui8IrqFlag = 0x01;
+        }
+    }
+}
+
 void negativeReaction()
 {
     rotateRightForTimeComp(NEG_REACTION_SPEED, 1000);
