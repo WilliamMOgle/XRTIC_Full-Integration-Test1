@@ -155,8 +155,17 @@ int main(int argc, char** argv)
         //END NON-BLOCKING TELEMETRY SEND CHECK
 #endif
 
-#if NFC_ENABLE
+#if (NFC_ENABLE & ~MQTT_ENABLE)
         tag_type = nfc_tag_detect(&tag_present, &count);
+
+        transmitString("Tag type: ");
+        switch(tag_type)
+        {
+        case POSITIVE_TAG: transmitString("pos tag\n\r"); break;
+        case NEGATIVE_TAG: transmitString("neg tag\n\r"); break;
+        case NO_TAG: transmitString("no tag\n\r"); break;
+        default: break;
+        }
 
 #if ROVER_ENABLE
         switch(tag_type)
@@ -193,6 +202,8 @@ int main(int argc, char** argv)
             tag_type = nfc_tag_detect(&tag_present, &count);
         }
 
+
+
 #if (ROVER_ENABLE & REACT_ENABLE)
         switch(tag_type)
         {
@@ -209,7 +220,8 @@ int main(int argc, char** argv)
 
         if(!rover_ctrl && SW2TimerRollover())
         {
-
+            rover_ctrl = true;
+            initSWTimer2();
         }
 #endif
 #endif

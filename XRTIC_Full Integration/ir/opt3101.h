@@ -68,6 +68,8 @@ policies, either expressed or implied, of the FreeBSD Project.
 #include "driverlib.h"
 #include "trf79x0.h"
 
+
+
 /**
  * Resets the OPT3101 distance sensor using its reset line and then waits for
  * it to be done loading its initial settings from the on-board EEPROM memory.
